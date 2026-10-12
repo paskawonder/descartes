@@ -698,6 +698,23 @@ async function getJson(path) {
   return res.json();
 }
 
+function expandAttributes(item) {
+  const { attributes, ...fields } = item;
+  const extra = typeof attributes === 'string' ? JSON.parse(attributes || '{}') : (attributes || {});
+  return { ...fields, ...extra };
+}
+
+const expandLocation = loc => expandAttributes(loc);
+const expandMedia = media => expandAttributes(media);
+function locationPayload(loc) {
+  const { id, name, country, lat, lon, mapsLink, ...attributes } = loc;
+  return { id, name, country, lat, lon, mapsLink, attributes: JSON.stringify(attributes) };
+}
+function mediaPayload(media) {
+  const { id, url, category, locationId, ...attributes } = media;
+  return { id, url, category, attributes: JSON.stringify(attributes) };
+}
+
 const safeUrl = u => {
   try {
     const x = new URL(u);
@@ -736,7 +753,7 @@ async function loadMedia(locationId) {
   const box = $('media');
   box.textContent = 'Loading gallery…';
   try {
-    const items = await getJson(`/api/locations/${encodeURIComponent(locationId)}/media`);
+    const items = (await getJson(`/api/locations/${encodeURIComponent(locationId)}/media`) || []).map(expandMedia);
     box.replaceChildren();
     lbImages = [];
     (items || []).forEach(i => i[F.category] && knownCategories.add(String(i[F.category]).trim()));
@@ -872,7 +889,7 @@ function addCircle(loc) {
 async function init() {
   try {
     const all = await getJson('/api/locations');
-    const locations = all.filter(l => l.lat != null && l.lon != null);
+    const locations = all.map(expandLocation).filter(l => l.lat != null && l.lon != null);
     const circles = locations.map(addCircle);
     if (circles.length) {
       map.fitBounds(L.featureGroup(circles).getBounds().pad(0.2), { maxZoom: 14 });
@@ -893,10 +910,11 @@ async function errorText(res) {
 
 async function createMediaRecord(url, id = uuid(), locId = currentLocId, reload = true, category = null) {
   if (!locId) return;
+  const media = mediaPayload({ id, url, [F.category]: category });
   const res = await fetch(`${API}/api/locations/${encodeURIComponent(locId)}/media`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ id, url, [F.category]: category })
+    body: JSON.stringify(media)
   });
   if (!res.ok) throw new Error(await errorText(res));
   if (reload && locId === currentLocId) await loadMedia(locId);
@@ -1125,13 +1143,13 @@ $('add').onsubmit = async ev => {
   if (!draft) return hint('Paste a valid Google Maps link first', 'err');
   const name = $('locName').value.trim();
   if (!name) return hint('Enter a name', 'err');
-  const body = {
+  const body = locationPayload({
     id: uuid(), name, lat: draft.lat, lon: draft.lon,
     [F.country]: $('country').value.trim(),
     region: $('region').value.trim(),
     website: $('website').value.trim(),
     [F.link]: $('gmLink').value.trim()
-  };
+  });
   $('addSave').disabled = true;
   try {
     const res = await fetch(API + '/api/locations', {
@@ -1144,7 +1162,7 @@ $('add').onsubmit = async ev => {
       try { const p = await res.json(); msg = p.detail || p.message || msg; } catch (e) {}
       throw new Error(msg);
     }
-    const loc = Object.assign({}, await res.json().catch(() => ({})), body);
+    const loc = expandLocation(Object.assign({}, await res.json().catch(() => ({})), body));
     closeAdd();
     showPanel(loc, addCircle(loc));
   } catch (e) {
@@ -1368,7 +1386,7 @@ function drawCard() {
 async function saveCard() {
   collectEdits();
   const p = places.get(cardId); LS.loc[cardId] = { ...LS.loc[cardId], ...editVals }; save();
-  const L = p.loc; done(await call('PUT', '/api/locations/' + encodeURIComponent(cardId), { id: L.id, name: L.name, country: L.country, lat: L.lat, lon: L.lon, mapsLink: L.mapsLink, ...LS.loc[cardId] }));
+  const L = p.loc; done(await call('POST', '/api/locations', locationPayload({ ...L, ...LS.loc[cardId] })));
   editing = false; editVals = {}; drawCard(); applyFilter();
   if (document.body.classList.contains('view-list')) drawFilters();
 }
@@ -1378,7 +1396,7 @@ async function loadCardMedia() {
   const id = cardId; let items = [];
   try { items = await getJson(`/api/locations/${encodeURIComponent(id)}/media`) || []; } catch (e) {}
   if (id !== cardId) return;
-  cardMedia = items.map((m, i) => ({ ...m, order: i, ...LS.media[m.id] })).filter(m => !m.deleted).sort((a, b) => a.order - b.order);
+  cardMedia = items.map(expandMedia).map((m, i) => ({ ...m, order: i, ...LS.media[m.id] })).filter(m => !m.deleted).sort((a, b) => a.order - b.order);
   drawCard();
 }
 const isImg = u => /\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(u || '');
@@ -1403,11 +1421,12 @@ function drawPhotos(edit) {
 }
 const mpath = m => `/api/locations/${encodeURIComponent(cardId)}/media/${encodeURIComponent(m.id)}`;
 const meta = (m, patch) => { Object.assign(m, patch); LS.media[m.id] = { ...LS.media[m.id], ...patch }; save(); };
-async function caption(m) { const c = prompt('Photo caption', m.caption || ''); if (c === null) return; meta(m, { caption: c.trim() }); done(await call('PATCH', mpath(m), { caption: c.trim() })); drawCard(); }
+async function caption(m) { const c = prompt('Photo caption', m.caption || ''); if (c === null) return; meta(m, { caption: c.trim() }); done(await call('POST', `/api/locations/${encodeURIComponent(cardId)}/media`, mediaPayload(m))); drawCard(); }
 async function move(i, d) {
   const j = i + d; if (j < 0 || j >= cardMedia.length) return;
   [cardMedia[i], cardMedia[j]] = [cardMedia[j], cardMedia[i]]; cardMedia.forEach((m, k) => meta(m, { order: k }));
-  done(await call('PUT', `/api/locations/${encodeURIComponent(cardId)}/media/order`, { ids: cardMedia.map(m => m.id) })); drawCard();
+  const results = await Promise.all(cardMedia.map(m => call('POST', `/api/locations/${encodeURIComponent(cardId)}/media`, mediaPayload(m))));
+  done(results.every(Boolean)); drawCard();
 }
 async function remove(m) {
   if (!confirm('Delete this file?')) return;
