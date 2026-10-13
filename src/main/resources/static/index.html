@@ -173,9 +173,7 @@
     padding-bottom: 8px;
   }
   #gallery .head .section-title { margin: 0; border: 0; padding: 0; }
-  #gallery .gallery-title { background:none; font:inherit; text-align:left; cursor:pointer; }
-  #gallery .gallery-title:hover { color:var(--ink); }
-  #gallery .gallery-title:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+  #gallery .gallery-title { margin:0; }
   #galleryLoc {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
@@ -601,7 +599,7 @@
   <button id="close" title="Close">×</button>
   <h3 id="title"></h3>
   <div id="meta" class="meta"></div>
-  <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full Card →</a> <a id="openMediaLink" class="coords" href="#" style="margin-left:14px">All Media →</a>
+  <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full Card →</a>
 
   <div id="uploadSec">
   <div class="section-title">Add Media</div>
@@ -620,7 +618,7 @@
 <div id="gallery">
   <button id="galleryClose" title="Hide gallery">×</button>
   <div class="head">
-    <button type="button" class="section-title gallery-title" id="galleryOpenAll" title="Open all media">Media Gallery</button>
+    <button type="button" class="chip gallery-title" id="galleryOpenAll" title="Open all media">All Media</button>
     <span id="galleryLoc"></span>
   </div>
   <div id="media"></div>
@@ -815,7 +813,6 @@ async function showPanel(loc, circle) {
   $('title').textContent = loc.name || '(unnamed location)';
   $('meta').textContent = loc[F.country] || '';
   $('openCardLink').onclick = e => { e.preventDefault(); openCard(loc.id); };
-  $('openMediaLink').onclick = e => { e.preventDefault(); openAllMedia(loc.id); };
   $('mapsLink').href = safeUrl(loc[F.link]) || `https://www.google.com/maps?q=${loc.lat},${loc.lon}`;
   $('uploadStatus').textContent = '';
   $('galleryLoc').textContent = loc.name || '';

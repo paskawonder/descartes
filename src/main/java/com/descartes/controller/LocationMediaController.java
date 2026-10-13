@@ -38,7 +38,7 @@ public class LocationMediaController {
 
     @GetMapping
     public List<LocationMedia> list(@PathVariable("locationId") String locationId,
-                                    @RequestParam("category") String category) {
+                                    @RequestParam(value = "category", required = false) String category) {
         List<LocationMedia> medias = locationMediaRepo.findByLocationId(locationId);
         if (StringUtils.isBlank(category)) {
             return medias;
