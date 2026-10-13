@@ -495,11 +495,13 @@
   #card .ph .star { position:absolute; top:6px; right:6px; padding:2px 8px; border-radius:999px; background:var(--ink); color:var(--surface); font-size:10px; }
   #card .ph .ctl { display:flex; flex-wrap:wrap; gap:4px; padding:6px; border-top:1px solid var(--line); }
   #card .ph .ctl button { padding:3px 8px; border:1px solid var(--line); border-radius:6px; background:#FFF; font-size:12px; cursor:pointer; }
+  #card .ph .download { display:inline-flex; margin:6px; padding:6px 10px; font-size:10px; text-decoration:none; }
   #booking { display:none; position:fixed; inset:0; z-index:1700; align-items:center; justify-content:center; background:rgba(30,25,20,.45); }
   #booking.open { display:flex; }
   #booking .bbox { width:min(420px,92vw); padding:24px; border-radius:var(--radius); background:var(--surface); display:grid; gap:10px; }
   @media (max-width:1100px) { #toolbar { top:calc(var(--gap) + 125px); left:var(--gap); right:var(--gap); } #listView { padding:200px 16px 40px; } }
   @media (max-width:700px) { #card h2 { font-size:30px; } #card .sheet { padding-top:36px; } #toolbar { top:110px; } }
+  @media (max-width:700px) { body.view-list #listView { padding-top:290px; } }
   #lightbox { z-index: 3500; }
 
   /* Lightbox */
@@ -594,7 +596,7 @@
   <button id="close" title="Close">×</button>
   <h3 id="title"></h3>
   <div id="meta" class="meta"></div>
-  <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full card →</a>
+  <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full Card →</a> <a id="openMediaLink" class="coords" href="#" style="margin-left:14px">All Media →</a>
 
   <div id="uploadSec">
   <div class="section-title">Add Media</div>
@@ -808,6 +810,7 @@ async function showPanel(loc, circle) {
   $('title').textContent = loc.name || '(unnamed location)';
   $('meta').textContent = loc[F.country] || '';
   $('openCardLink').onclick = e => { e.preventDefault(); openCard(loc.id); };
+  $('openMediaLink').onclick = e => { e.preventDefault(); openAllMedia(loc.id); };
   $('mapsLink').href = safeUrl(loc[F.link]) || `https://www.google.com/maps?q=${loc.lat},${loc.lon}`;
   $('uploadStatus').textContent = '';
   $('galleryLoc').textContent = loc.name || '';
@@ -1339,15 +1342,21 @@ async function compress(file, max = 2400, q = 0.85) {
 }
 
 /* hotel card */
-let cardId = null, editing = false, gTab = 'All', cardMedia = [];
+let cardId = null, editing = false, mediaOnly = false, gTab = 'All', cardMedia = [];
 const canEdit = () => document.body.classList.contains('menu-open');
 function openCard(id) {
-  cardId = id; currentLocId = id; editing = false; gTab = 'All';
+  cardId = id; currentLocId = id; editing = false; mediaOnly = false; gTab = 'All';
+  $('card').classList.add('open'); $('card').scrollTop = 0;
+  history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
+  drawCard();
+}
+function openAllMedia(id) {
+  cardId = id; currentLocId = id; editing = false; mediaOnly = true; gTab = 'All';
   $('card').classList.add('open'); $('card').scrollTop = 0;
   history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
   drawCard(); loadCardMedia();
 }
-function closeCard() { $('card').classList.remove('open'); cardId = null; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+function closeCard() { $('card').classList.remove('open'); cardId = null; editing = false; mediaOnly = false; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { $('booking').classList.remove('open'); closeCard(); } });
 function routeFromHash() { const m = location.hash.match(/^#\/l\/(.+)$/); if (m && places.has(decodeURIComponent(m[1]))) openCard(decodeURIComponent(m[1])); }
 
@@ -1361,6 +1370,16 @@ function drawCard() {
   const p = places.get(cardId); if (!p) return;
   const edit = editing && canEdit(), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc), t = f.type || '', box = $('sheet');
   const sub = [t, f.city, f.region, p.loc.country].filter(Boolean).join(' · ') + (f.subcategory ? '  ·  ' + f.subcategory : '');
+  if (mediaOnly) {
+    box.replaceChildren(
+      h('h2', { textContent: p.loc.name || '(unnamed)' }),
+      h('div', { className: 'sub', textContent: sub }),
+      h('div', { className: 'row' },
+        h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => { mediaOnly = false; editing = false; drawCard(); } }),
+        canEdit() && h('button', { className: 'btn ghost', type: 'button', textContent: editing ? 'Done editing' : 'Edit media', onclick: () => { editing = !editing; drawCard(); } })),
+      drawPhotos(edit));
+    return;
+  }
   const site = safeUrl(f.website);
   const row = h('div', { className: 'row' },
     h('button', { className: 'btn', type: 'button', textContent: 'Request a Booking', onclick: openBooking }),
@@ -1381,7 +1400,7 @@ function drawCard() {
     else body = h('p', { textContent: kind === 'date' ? new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : v });
     return h('div', { className: 'blk' }, h('h4', { textContent: labelOf(fd, t) }), body);
   });
-  box.replaceChildren(h('h2', { textContent: p.loc.name || '(unnamed)' }), h('div', { className: 'sub', textContent: sub }), row, typeBlock, ...blocks, drawPhotos(edit));
+  box.replaceChildren(h('h2', { textContent: p.loc.name || '(unnamed)' }), h('div', { className: 'sub', textContent: sub }), row, typeBlock, ...blocks);
 }
 async function saveCard() {
   collectEdits();
@@ -1408,6 +1427,7 @@ function drawPhotos(edit) {
     const u = safeUrl(m.url), media = isImg(u) ? h('img', { src: u, loading: 'lazy', alt: m.caption || '', onclick: () => { lbImages = urls; showLightbox(urls.indexOf(u)); } }) : h('video', { src: u, controls: true, preload: 'metadata' });
     const idx = cardMedia.indexOf(m);
     return h('div', { className: 'ph' }, media, (m.caption || edit) && h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
+      u && h('a', { className: 'btn ghost download', href: u, download: '', textContent: 'Download original', title: 'Download the high-resolution original' }),
       edit && h('div', { className: 'ctl' },
         h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
         h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }), h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
