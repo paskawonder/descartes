@@ -173,6 +173,9 @@
     padding-bottom: 8px;
   }
   #gallery .head .section-title { margin: 0; border: 0; padding: 0; }
+  #gallery .gallery-title { background:none; font:inherit; text-align:left; cursor:pointer; }
+  #gallery .gallery-title:hover { color:var(--ink); }
+  #gallery .gallery-title:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
   #galleryLoc {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
@@ -488,9 +491,9 @@
   .btn { padding:11px 20px; border:0; border-radius:999px; background:var(--ink); color:var(--surface); font:inherit; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; cursor:pointer; }
   .btn.ghost { background:none; color:var(--ink); border:1px solid var(--ink); }
   #card .tabs { margin:8px 0 14px; }
-  #card .photos { column-width:220px; column-gap:12px; }
-  #card .ph { position:relative; break-inside:avoid; margin-bottom:12px; border-radius:8px; overflow:hidden; background:var(--surface); border:1px solid var(--line); }
-  #card .ph img, #card .ph video { display:block; width:100%; height:auto; cursor:zoom-in; }
+  #card .photos { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+  #card .ph { position:relative; min-width:0; border-radius:8px; overflow:hidden; background:var(--surface); border:1px solid var(--line); }
+  #card .ph img, #card .ph video { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; cursor:zoom-in; }
   #card .ph .cap { padding:6px 10px; font-size:12px; color:var(--muted); }
   #card .ph .star { position:absolute; top:6px; right:6px; padding:2px 8px; border-radius:999px; background:var(--ink); color:var(--surface); font-size:10px; }
   #card .ph .ctl { display:flex; flex-wrap:wrap; gap:4px; padding:6px; border-top:1px solid var(--line); }
@@ -615,7 +618,7 @@
 <div id="gallery">
   <button id="galleryClose" title="Hide gallery">×</button>
   <div class="head">
-    <div class="section-title">Media Gallery</div>
+    <button type="button" class="section-title gallery-title" id="galleryOpenAll" title="Open all media">Media Gallery</button>
     <span id="galleryLoc"></span>
   </div>
   <div id="media"></div>
@@ -832,6 +835,7 @@ function closePanel() {
   syncListActive();
 }
 $('close').onclick = closePanel;
+$('galleryOpenAll').onclick = () => { if (currentLocId) openAllMedia(currentLocId); };
 $('galleryClose').onclick = () => { $('gallery').classList.remove('open'); document.body.classList.remove('gallery-open'); };
 $('lightboxClose').onclick = () => $('lightbox').style.display = 'none';
 /* keep clicks/scrolls on the floating boxes from reaching the map */
