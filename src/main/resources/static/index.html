@@ -1419,7 +1419,10 @@ async function loadCardMedia() {
   const id = cardId; let items = [];
   try { items = await getJson(`/api/locations/${encodeURIComponent(id)}/media`) || []; } catch (e) {}
   if (id !== cardId) return;
-  cardMedia = items.map(expandMedia).map((m, i) => ({ ...m, order: i, ...LS.media[m.id] })).filter(m => !m.deleted).sort((a, b) => a.order - b.order);
+  cardMedia = items.map(expandMedia).map((m, i) => {
+    const storedOrder = Number(m.order);
+    return { ...m, order: m.order != null && Number.isFinite(storedOrder) ? storedOrder : i, ...LS.media[m.id] };
+  }).filter(m => !m.deleted).sort((a, b) => a.order - b.order);
   drawCard();
 }
 const isImg = u => /\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(u || '');
