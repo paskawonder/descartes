@@ -2,6 +2,7 @@ package com.descartes.model;
 
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 @DynamoDbBean
 public class LocationMedia {
@@ -12,6 +13,7 @@ public class LocationMedia {
     private String category;
     private String attributes;
 
+    @DynamoDbSortKey
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

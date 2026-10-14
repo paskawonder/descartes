@@ -1456,7 +1456,9 @@ async function move(i, d) {
 }
 async function remove(m) {
   if (!confirm('Delete this file?')) return;
-  meta(m, { deleted: true }); cardMedia = cardMedia.filter(x => x !== m); done(await call('DELETE', mpath(m))); drawCard();
+  const ok = await call('DELETE', mpath(m));
+  if (!ok) { toast('Could not delete the file from S3. It is still in the library.'); return; }
+  meta(m, { deleted: true }); cardMedia = cardMedia.filter(x => x !== m); toast('Deleted from S3 and library.'); drawCard();
 }
 async function addFiles(files, cat) { if (!files.length) return; $('mediaCategory').value = cat; await handleFiles(files); await loadCardMedia(); }
 function replace(m) {
@@ -1465,7 +1467,11 @@ function replace(m) {
     await handleFiles([inp.files[0]]); await remove2(m); await loadCardMedia(); } });
   inp.click();
 }
-async function remove2(m) { meta(m, { deleted: true }); await call('DELETE', mpath(m)); }
+async function remove2(m) {
+  const ok = await call('DELETE', mpath(m));
+  if (!ok) { toast('Could not delete the replaced file from S3.'); return; }
+  meta(m, { deleted: true });
+}
 
 /* booking request: show the WhatsApp contact */
 const WHATSAPP = '+00 000 000 0000';   // TODO: put the Descartes WhatsApp number here (international format)
