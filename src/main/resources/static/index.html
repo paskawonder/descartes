@@ -668,6 +668,7 @@ L.geoJSON(RUSSIA, {
 
 let activeCircle = null;
 let currentLocId = null;
+let galleryLoadSeq = 0;
 
 async function getJson(path) {
   const res = await fetch(API + path, { headers: { Accept: 'application/json' } });
@@ -725,10 +726,13 @@ document.addEventListener('keydown', e => {
 });
 
 async function loadMedia(locationId) {
+  const seq = ++galleryLoadSeq;
+  const isCurrent = () => seq === galleryLoadSeq && String(currentLocId) === String(locationId);
   const box = $('media');
   box.textContent = 'Loading gallery…';
   try {
     const items = (await getJson(`/api/locations/${encodeURIComponent(locationId)}/media`) || []).map(expandMedia);
+    if (!isCurrent()) return;
     box.replaceChildren();
     lbImages = [];
     if (!items || !items.length) {
@@ -767,7 +771,7 @@ async function loadMedia(locationId) {
       box.append(div);
     });
   } catch (e) {
-    box.textContent = 'Could not load gallery: ' + e.message;
+    if (isCurrent()) box.textContent = 'Could not load gallery: ' + e.message;
   }
 }
 
@@ -786,6 +790,7 @@ async function showPanel(loc, circle) {
   $('panel').style.display = 'block';
   $('gallery').classList.add('open');
   document.body.classList.add('gallery-open', 'panel-open');
+  $('galleryOpenAll').onclick = () => openAllMedia(loc.id);
   syncListActive();
 
   await loadMedia(loc.id);
@@ -798,10 +803,10 @@ function closePanel() {
   if (activeCircle) activeCircle.setStyle(STYLE);
   activeCircle = null;
   currentLocId = null;
+  galleryLoadSeq++;
   syncListActive();
 }
 $('close').onclick = closePanel;
-$('galleryOpenAll').onclick = () => { if (currentLocId) openAllMedia(currentLocId); };
 $('galleryClose').onclick = () => { $('gallery').classList.remove('open'); document.body.classList.remove('gallery-open'); };
 $('lightboxClose').onclick = () => $('lightbox').style.display = 'none';
 /* keep clicks/scrolls on the floating boxes from reaching the map */
