@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
 @RestController
 public class MapsLinkResolverController {
 
-    private static final Set<String> SHORT_LINK_HOSTS = Set.of("maps.app.goo.gl", "goo.gl");
-    private static final Set<String> GOOGLE_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "google.com", "www.google.com", "maps.google.com");
+    private static final Set<String> SHORT_LINK_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co");
+    private static final Set<String> GOOGLE_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co", "google.com", "www.google.com", "maps.google.com");
     private static final Pattern COORDINATES = Pattern.compile(
             "!3d(-?\\d{1,3}(?:\\.\\d+)?)!4d(-?\\d{1,3}(?:\\.\\d+)?)"
                     + "|@(-?\\d{1,3}(?:\\.\\d+)?),\\s*(-?\\d{1,3}(?:\\.\\d+)?)"
@@ -94,7 +94,9 @@ public class MapsLinkResolverController {
 
     private static URI parseShortLink(String value) {
         try {
-            URI uri = URI.create(value.trim());
+            String input = value.trim();
+            if (!input.matches("(?i)^https?://.*")) input = "https://" + input;
+            URI uri = URI.create(input);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || !SHORT_LINK_HOSTS.contains(host(uri))
                     || uri.getRawUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 443)) {
                 throw new IllegalArgumentException();
