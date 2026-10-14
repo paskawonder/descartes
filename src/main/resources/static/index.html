@@ -1283,29 +1283,29 @@ async function compress(file, max = 2400, q = 0.85) {
 }
 
 /* hotel card */
-let cardId = null, editing = false, mediaOnly = false, gTab = 'All', cardMedia = [];
+let cardId = null, mediaOnly = false, gTab = 'All', cardMedia = [];
 const canEdit = () => document.body.classList.contains('menu-open');
 function openCard(id) {
-  cardId = id; currentLocId = id; editing = false; mediaOnly = false; gTab = 'All'; editVals = {};
+  cardId = id; currentLocId = id; mediaOnly = false; gTab = 'All'; editVals = {};
   $('card').classList.add('open'); $('card').scrollTop = 0;
   history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
   drawCard();
 }
 function openAllMedia(id) {
-  cardId = id; currentLocId = id; editing = false; mediaOnly = true; gTab = 'All';
+  cardId = id; currentLocId = id; mediaOnly = true; gTab = 'All';
   mediaUploadStatus = '';
   $('card').classList.add('open'); $('card').scrollTop = 0;
   history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
   drawCard(); loadCardMedia();
 }
-function closeCard() { $('card').classList.remove('open'); cardId = null; editing = false; mediaOnly = false; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+function closeCard() { $('card').classList.remove('open'); cardId = null; mediaOnly = false; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
 $('cardClose').onclick = closeCard;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { $('booking').classList.remove('open'); closeCard(); } });
 function routeFromHash() { const m = location.hash.match(/^#\/l\/(.+)$/); if (m && places.has(decodeURIComponent(m[1]))) openCard(decodeURIComponent(m[1])); }
 
 let editVals = {};
 const curType = () => {
-  const type = ((!mediaOnly || editing && canEdit()) && editVals.type != null)
+  const type = (!mediaOnly && editVals.type != null)
     ? editVals.type : (full((places.get(cardId) || { loc: {} }).loc).type || '');
   return type === 'Destinations' ? 'Experiences' : type;
 };
@@ -1316,7 +1316,7 @@ function collectEdits() {
 }
 function drawCard() {
   const p = places.get(cardId); if (!p) return;
-  const edit = !mediaOnly || editing && canEdit(), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc);
+  const edit = !mediaOnly, f = edit ? { ...full(p.loc), ...editVals } : full(p.loc);
   const t = f.type === 'Destinations' ? 'Experiences' : f.type || '', box = $('sheet');
   const sub = [t, f.city, f.region, p.loc.country].filter(Boolean).join(' · ') + (f.subcategory ? '  ·  ' + f.subcategory : '');
   if (mediaOnly) {
@@ -1324,9 +1324,8 @@ function drawCard() {
       h('h2', { textContent: full(p.loc).name || '(unnamed)' }),
       h('div', { className: 'sub', textContent: sub }),
       h('div', { className: 'row' },
-        h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => { mediaOnly = false; editing = false; drawCard(); } }),
-        canEdit() && h('button', { className: 'btn ghost', type: 'button', textContent: editing ? 'Done editing' : 'Edit media', onclick: () => { editing = !editing; drawCard(); } })),
-      drawPhotos(edit));
+        h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => { mediaOnly = false; drawCard(); } })),
+      drawPhotos());
     return;
   }
   const site = safeUrl(f.website);
@@ -1350,14 +1349,14 @@ function drawCard() {
   });
   const name = h('input', { id: 'f_name', className: 'card-name', value: f.name || '', placeholder: '(unnamed location)' });
   name.setAttribute('aria-label', 'Location name');
-  box.replaceChildren(name, h('div', { className: 'sub', textContent: sub }), row, typeBlock, drawPhotos(false), ...blocks);
+  box.replaceChildren(name, h('div', { className: 'sub', textContent: sub }), row, typeBlock, ...blocks);
 }
 async function saveCard() {
   collectEdits();
   const p = places.get(cardId); LS.loc[cardId] = { ...LS.loc[cardId], ...editVals }; Object.assign(p.loc, editVals); save();
   p.circle.setTooltipContent(p.loc.name || '(unnamed)');
   const L = p.loc; done(await call('POST', '/api/locations', locationPayload({ ...L, ...LS.loc[cardId] })));
-  editing = false; editVals = {}; drawCard(); applyFilter();
+  editVals = {}; drawCard(); applyFilter();
   if (document.body.classList.contains('view-list')) drawFilters();
 }
 
@@ -1373,7 +1372,7 @@ async function loadCardMedia() {
   drawCard();
 }
 const isImg = u => /\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(u || '');
-function drawPhotos(edit) {
+function drawPhotos() {
   const cats = [...new Set([...galleriesFor(curType()), ...cardMedia.map(m => m[F.category]).filter(Boolean), 'General'])];
   const tabs = h('div', { className: 'chips tabs' }, ...['All', ...cats].map(c => h('button', { type: 'button', className: 'chip' + (c === gTab ? ' on' : ''), textContent: c, onclick: () => { gTab = c; drawCard(); } })));
   const list = cardMedia.filter(m => gTab === 'All' || m[F.category] === gTab), urls = list.filter(m => isImg(m.url)).map(m => safeUrl(m.url));
@@ -1382,14 +1381,14 @@ function drawPhotos(edit) {
     const idx = cardMedia.indexOf(m);
     const categoryPicker = dropdown({ value: m[F.category] || 'General', options: cats.map(c => ({ value: c, label: c })), onchange: category => setCategory(m, category) });
     categoryPicker.querySelector('button').setAttribute('aria-label', 'Media category');
-    const controls = (edit || mediaOnly) && h('div', { className: 'ctl' },
-      (edit || mediaOnly) && categoryPicker,
-      edit && h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
-      edit && h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }),
-      edit && h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
-      edit && h('button', { title: 'Replace', textContent: '⇄', onclick: () => replace(m) }),
-      edit && h('button', { title: 'Delete', textContent: '✕', onclick: () => remove(m) }));
-    return h('div', { className: 'ph' }, media, (m.caption || edit) && h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
+    const controls = canEdit() && h('div', { className: 'ctl' },
+      categoryPicker,
+      h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
+      h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }),
+      h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
+      h('button', { title: 'Replace', textContent: '⇄', onclick: () => replace(m) }),
+      h('button', { title: 'Delete', textContent: '✕', onclick: () => remove(m) }));
+    return h('div', { className: 'ph' }, media, (m.caption || canEdit()) && h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
       u && h('a', { className: 'btn ghost download', href: u, download: '', textContent: 'Download original', title: 'Download the high-resolution original' }),
       controls);
   });
