@@ -475,6 +475,9 @@
   .lcard span { display:block; margin-top:4px; font-size:12px; color:var(--muted); }
   #card { display:none; position:fixed; inset:0; z-index:1500; overflow-y:auto; background:var(--bg, #EFE9DF); }
   #card.open { display:block; }
+  #cardClose { position:fixed; top:20px; right:24px; z-index:1; width:40px; height:40px; border:1px solid var(--line); border-radius:50%; background:var(--surface); color:var(--ink); font:inherit; font-size:24px; line-height:1; cursor:pointer; box-shadow:var(--shadow); }
+  #cardClose:hover { background:var(--ink); color:var(--surface); }
+  #cardClose:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
   #card .sheet { max-width:980px; margin:0 auto; padding:56px 20px 60px; }
   #card h2 { margin:0; font-family:'Cormorant Garamond',Georgia,serif; font-size:40px; font-weight:600; }
   #card .sub { margin:6px 0 16px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
@@ -580,7 +583,7 @@
   <div class="chips"><button type="button" class="chip on" id="vMap">Map</button><button type="button" class="chip" id="vList">List</button></div>
 </div>
 <div id="listView"><div class="fbar" id="fbar"></div><div class="grid" id="listGrid"></div></div>
-<div id="card"><div class="sheet" id="sheet"></div></div>
+<div id="card"><button type="button" id="cardClose" title="Close" aria-label="Close full card">×</button><div class="sheet" id="sheet"></div></div>
 <div id="booking"><div class="bbox">
   <h3 style="margin:0">Request a Booking</h3>
   <p id="bText" style="margin:0"></p>
@@ -1348,7 +1351,7 @@ async function compress(file, max = 2400, q = 0.85) {
 let cardId = null, editing = false, mediaOnly = false, gTab = 'All', cardMedia = [];
 const canEdit = () => document.body.classList.contains('menu-open');
 function openCard(id) {
-  cardId = id; currentLocId = id; editing = false; mediaOnly = false; gTab = 'All';
+  cardId = id; currentLocId = id; editing = false; mediaOnly = false; gTab = 'All'; editVals = {};
   $('card').classList.add('open'); $('card').scrollTop = 0;
   history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
   drawCard();
@@ -1360,18 +1363,19 @@ function openAllMedia(id) {
   drawCard(); loadCardMedia();
 }
 function closeCard() { $('card').classList.remove('open'); cardId = null; editing = false; mediaOnly = false; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+$('cardClose').onclick = closeCard;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { $('booking').classList.remove('open'); closeCard(); } });
 function routeFromHash() { const m = location.hash.match(/^#\/l\/(.+)$/); if (m && places.has(decodeURIComponent(m[1]))) openCard(decodeURIComponent(m[1])); }
 
 let editVals = {};
-const curType = () => (editing && canEdit() && editVals.type != null) ? editVals.type : (full((places.get(cardId) || { loc: {} }).loc).type || '');
+const curType = () => ((editing || !mediaOnly) && canEdit() && editVals.type != null) ? editVals.type : (full((places.get(cardId) || { loc: {} }).loc).type || '');
 function collectEdits() {
   FIELDS.forEach(([k]) => { const e = $('f_' + k); if (e) editVals[k] = e.value.trim(); });
   if ($('f_type')) editVals.type = $('f_type').value;
 }
 function drawCard() {
   const p = places.get(cardId); if (!p) return;
-  const edit = editing && canEdit(), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc), t = f.type || '', box = $('sheet');
+  const edit = canEdit() && (!mediaOnly || editing), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc), t = f.type || '', box = $('sheet');
   const sub = [t, f.city, f.region, p.loc.country].filter(Boolean).join(' · ') + (f.subcategory ? '  ·  ' + f.subcategory : '');
   if (mediaOnly) {
     box.replaceChildren(
@@ -1388,7 +1392,7 @@ function drawCard() {
     h('button', { className: 'btn', type: 'button', textContent: 'Request a Booking', onclick: openBooking }),
     site && h('a', { href: site, target: '_blank', rel: 'noopener noreferrer', textContent: 'Official website ↗' }),
     safeUrl(p.loc.mapsLink) && h('a', { href: safeUrl(p.loc.mapsLink), target: '_blank', rel: 'noopener noreferrer', textContent: 'Google Maps ↗' }),
-    canEdit() && h('button', { className: 'btn ghost', type: 'button', textContent: edit ? 'Cancel' : 'Edit card', onclick: () => { editing = !editing; editVals = {}; drawCard(); } }),
+    h('button', { className: 'btn ghost', type: 'button', textContent: 'All Media', onclick: () => { collectEdits(); openAllMedia(cardId); } }),
     edit && h('button', { className: 'btn', type: 'button', textContent: 'Save', onclick: saveCard }));
   const typeBlock = edit && h('div', { className: 'blk' }, h('h4', { textContent: 'Type' }),
     dropdown({ id: 'f_type', value: t, placeholder: 'Choose a type', options: TYPES.map(x => ({ value: x, label: x })), onchange: () => { collectEdits(); gTab = 'All'; drawCard(); } }),
