@@ -613,11 +613,11 @@
 <form id="add">
   <button type="button" id="addClose" title="Cancel">×</button>
   <h3>Add Location</h3>
-  <label>Location Name
-    <input id="gmName" placeholder="Resolved automatically; you can edit it" autocomplete="off">
-  </label>
   <label>Google Maps Link
     <input id="gmLink" placeholder="Paste a Google Maps link" autocomplete="off" required>
+  </label>
+  <label>Location Name
+    <input id="gmName" placeholder="Resolved automatically; you can edit it" autocomplete="off">
   </label>
   <span id="gmHint"></span>
   <button type="submit" id="addSave">Save Location</button>
@@ -1381,10 +1381,9 @@ function drawPhotos() {
     categoryPicker.querySelector('button').setAttribute('aria-label', 'Media category');
     const controls = h('div', { className: 'ctl' },
       categoryPicker,
-      h('button', { type: 'button', title: 'Move earlier', textContent: 'Move earlier', onclick: () => move(idx, -1) }),
-      h('button', { type: 'button', title: 'Move later', textContent: 'Move later', onclick: () => move(idx, 1) }),
+      h('button', { type: 'button', title: 'Move Left', textContent: 'Move Left', onclick: () => move(idx, -1) }),
+      h('button', { type: 'button', title: 'Move Right', textContent: 'Move Right', onclick: () => move(idx, 1) }),
       h('button', { type: 'button', title: 'Caption', textContent: 'Edit caption', onclick: () => caption(m) }),
-      h('button', { type: 'button', title: 'Replace', textContent: 'Replace', onclick: () => replace(m) }),
       h('button', { type: 'button', title: 'Delete', textContent: 'Delete', onclick: () => remove(m) }));
     return h('div', { className: 'ph' }, media, h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
       u && h('a', { className: 'btn ghost download', href: u, download: '', textContent: 'Download original', title: 'Download the high-resolution original' }),
@@ -1422,19 +1421,6 @@ async function remove(m) {
   meta(m, { deleted: true }); cardMedia = cardMedia.filter(x => x !== m); toast('Deleted from S3 and library.'); drawCard();
 }
 async function addFiles(files) { if (!files.length) return; await handleFiles(files); }
-function replace(m) {
-  const inp = h('input', { type: 'file', accept: 'image/*,video/*', onchange: async () => {
-    if (!inp.files[0]) return;
-    if (!await handleFiles([inp.files[0]], m[F.category] || 'General')) return;
-    if (await remove2(m)) await loadCardMedia(); } });
-  inp.click();
-}
-async function remove2(m) {
-  const ok = await call('DELETE', mpath(m));
-  if (!ok) { toast('Could not delete the replaced file from S3.'); return false; }
-  meta(m, { deleted: true });
-  return true;
-}
 
 /* booking request: show the WhatsApp contact */
 const WHATSAPP = '+00 000 000 0000';   // TODO: put the Descartes WhatsApp number here (international format)
