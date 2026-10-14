@@ -48,7 +48,11 @@ public class LocationMediaController {
         if (StringUtils.isBlank(category)) {
             return medias;
         }
-        return medias.stream().filter(e -> e.getCategory().toLowerCase().equals(category)).toList();
+        String normalizedCategory = category.trim();
+        return medias.stream()
+                .filter(e -> e.getCategory() != null)
+                .filter(e -> e.getCategory().equalsIgnoreCase(normalizedCategory))
+                .toList();
     }
 
     @DeleteMapping("/{id}")

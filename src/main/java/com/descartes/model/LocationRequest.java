@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record LocationRequest(
-        UUID id,
+        @NotNull UUID id,
         @NotBlank String name,
         @NotBlank String country,
         @NotNull @DecimalMin("-90") @DecimalMax("90") Double lat,
