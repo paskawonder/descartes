@@ -613,6 +613,9 @@
 <form id="add">
   <button type="button" id="addClose" title="Cancel">×</button>
   <h3>Add Location</h3>
+  <label>Location Name
+    <input id="gmName" placeholder="Resolved automatically; you can edit it" autocomplete="off">
+  </label>
   <label>Google Maps Link
     <input id="gmLink" placeholder="Paste a Google Maps link" autocomplete="off" required>
   </label>
@@ -913,8 +916,8 @@ async function uploadOne(file, locId, category, onProgress) {
 }
 
 async function handleFiles(fileList, category = 'General') {
-  if (!currentLocId || !fileList || !fileList.length) return;
-  if (uploading) { mediaUploadStatus = 'An upload is already running…'; drawCard(); return; }
+  if (!currentLocId || !fileList || !fileList.length) return false;
+  if (uploading) { mediaUploadStatus = 'An upload is already running…'; drawCard(); return false; }
   let files = Array.from(fileList), note = '';
   if (files.length > MAX_FILES) { note = ' (only the first ' + MAX_FILES + ' files were used)'; files = files.slice(0, MAX_FILES); }
 
@@ -926,6 +929,7 @@ async function handleFiles(fileList, category = 'General') {
       Math.round(progress.reduce((x, y) => x + y, 0) / files.length) + '%';
     const status = $('mediaUploadStatus');
     if (status) status.textContent = mediaUploadStatus;
+    return ok === files.length;
   };
   render();
   const queue = files.map((f, i) => i);
@@ -951,16 +955,21 @@ async function handleFiles(fileList, category = 'General') {
 
 /* Google Maps Link Parsing & Add Location */
 let draftMarker = null;
+let nameEdited = false;
 
 function parseMapsLink(input) {
-  let t = input.trim();
+  let t = input.trim(), url;
+  try {
+    url = new URL(t);
+    if (!['http:', 'https:'].includes(url.protocol)
+        || !['google.com', 'www.google.com', 'maps.google.com'].includes(url.hostname.toLowerCase())) return null;
+  } catch (e) { return null; }
   try { t = decodeURIComponent(t); } catch (e) {}
   const N = '(-?\\d{1,3}(?:\\.\\d+)?)';
   const patterns = [
     new RegExp('!3d' + N + '!4d' + N),
     new RegExp('[?&](?:q|ll|query|center|destination|daddr)=' + N + '\\s*,\\s*' + N),
-    new RegExp('@' + N + ',' + N),
-    new RegExp('^' + N + '\\s*[,; ]\\s*' + N + '$')
+    new RegExp('@' + N + ',' + N)
   ];
   for (const re of patterns) {
     const m = t.match(re);
@@ -976,7 +985,9 @@ function parseMapsLink(input) {
 let draft = null;
 
 function setDraft(lat, lon, name) {
-  draft = { lat: +lat, lon: +lon, name: name || '', country: '', region: '', website: '' };
+  const resolvedName = nameEdited ? $('gmName').value.trim() : name || '';
+  draft = { lat: +lat, lon: +lon, name: resolvedName, country: '', region: '', website: '' };
+  if (!nameEdited) $('gmName').value = resolvedName;
   if (!draftMarker) draftMarker = L.circleMarker([lat, lon], DRAFT).addTo(map);
   else draftMarker.setLatLng([lat, lon]);
 }
@@ -989,6 +1000,8 @@ function hint(text, cls) {
 
 function openAdd(latlng) {
   closePanel();
+  nameEdited = false;
+  $('gmName').value = '';
   const lat = latlng.lat.toFixed(6), lon = latlng.lng.toFixed(6);
   setDraft(lat, lon);
   $('gmLink').value = `https://www.google.com/maps?q=${lat},${lon}`;
@@ -1003,6 +1016,8 @@ function openAdd(latlng) {
 function openAddBlank() {
   if ($('add').style.display === 'block') return $('gmLink').focus();
   closePanel();
+  nameEdited = false;
+  $('gmName').value = '';
   draft = null;
   pendingGeo = Promise.resolve();
   if (draftMarker) { draftMarker.remove(); draftMarker = null; }
@@ -1015,8 +1030,6 @@ function openAddBlank() {
 $('addBtn').onclick = openAddBlank;
 
 function closeAdd() {
-  clearTimeout(linkTimer);
-  linkSeq++;
   draft = null;
   if (draftMarker) { draftMarker.remove(); draftMarker = null; }
   $('add').style.display = 'none';
@@ -1040,7 +1053,10 @@ async function geo(lat, lon) {
     draft.country = a.country || draft.country;
     draft.region = a.state || a.region || a.province || a.county || draft.region;
     draft.website = x.website || x['contact:website'] || x.url || draft.website;
-    if (!draft.name) draft.name = j.name || String(j.display_name || '').split(',')[0].trim();
+    if (!draft.name) {
+      draft.name = j.name || String(j.display_name || '').split(',')[0].trim();
+      if (!nameEdited) $('gmName').value = draft.name;
+    }
   } catch (e) {}
 }
 
@@ -1051,42 +1067,20 @@ function applyResolved(r) {
   hint(`Found coordinates: ${r.lat}, ${r.lon}`, 'ok');
 }
 
-/* Google Maps short links need a server to follow redirects: GET /api/resolve-link?url=… -> {lat, lon, name, country, region, website} */
-const MAPS_SHORT_HOSTS = new Set(['maps.app.goo.gl', 'goo.gl', 'g.co', 'share.google']);
-function normalizeShortMapsLink(value) {
-  const input = /^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : 'https://' + value;
-  try {
-    const url = new URL(input);
-    return url.protocol === 'https:' && MAPS_SHORT_HOSTS.has(url.hostname.toLowerCase()) ? url.href : null;
-  } catch (e) { return null; }
-}
-let linkTimer, linkSeq = 0;
+$('gmName').addEventListener('input', () => {
+  nameEdited = true;
+  if (draft) draft.name = $('gmName').value.trim();
+ });
+
 let pendingGeo = Promise.resolve();
 $('gmLink').addEventListener('input', () => {
-  clearTimeout(linkTimer);
-  const v = $('gmLink').value.trim(), seq = ++linkSeq;
+  const v = $('gmLink').value.trim();
   pendingGeo = Promise.resolve();
   if (!v) { draft = null; return hint(''); }
   const r = parseMapsLink(v);
   if (r) { applyResolved(r); pendingGeo = geo(r.lat, r.lon); return; }
   draft = null;
-  const shortLink = normalizeShortMapsLink(v);
-  if (!shortLink) return hint('No coordinates found in link', 'err');
-  hint('Reading short link…');
-  linkTimer = setTimeout(async () => {
-    try {
-      const res = await fetch(API + '/api/resolve-link?url=' + encodeURIComponent(shortLink), { headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(res.status);
-      const d = await res.json();
-      if (seq !== linkSeq) return;
-      const lat = parseFloat(d.lat), lon = parseFloat(d.lon);
-      if (isNaN(lat) || isNaN(lon)) throw new Error('no coordinates');
-      applyResolved({ lat, lon, name: d.name || '', country: d.country, region: d.region, website: d.website });
-      pendingGeo = geo(lat, lon);
-    } catch (e) {
-      if (seq === linkSeq) hint('Could not read the short link (backend resolver /api/resolve-link not available). Open it in the browser and paste the full URL from the address bar.', 'err');
-    }
-  }, 500);
+  return hint('Paste the full Google Maps URL containing coordinates. Short links are not supported.', 'err');
 });
 
 $('add').onsubmit = async ev => {
@@ -1289,7 +1283,6 @@ async function compress(file, max = 2400, q = 0.85) {
 
 /* hotel card */
 let cardId = null, mediaOnly = false, gTab = 'All', cardMedia = [];
-const canEdit = () => document.body.classList.contains('menu-open');
 function openCard(id) {
   cardId = id; currentLocId = id; mediaOnly = false; gTab = 'All'; editVals = {};
   $('card').classList.add('open'); $('card').scrollTop = 0;
@@ -1386,14 +1379,14 @@ function drawPhotos() {
     const idx = cardMedia.indexOf(m);
     const categoryPicker = dropdown({ value: m[F.category] || 'General', options: cats.map(c => ({ value: c, label: c })), onchange: category => setCategory(m, category) });
     categoryPicker.querySelector('button').setAttribute('aria-label', 'Media category');
-    const controls = canEdit() && h('div', { className: 'ctl' },
+    const controls = h('div', { className: 'ctl' },
       categoryPicker,
-      h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
-      h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }),
-      h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
-      h('button', { title: 'Replace', textContent: '⇄', onclick: () => replace(m) }),
-      h('button', { title: 'Delete', textContent: '✕', onclick: () => remove(m) }));
-    return h('div', { className: 'ph' }, media, (m.caption || canEdit()) && h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
+      h('button', { type: 'button', title: 'Move earlier', textContent: 'Move earlier', onclick: () => move(idx, -1) }),
+      h('button', { type: 'button', title: 'Move later', textContent: 'Move later', onclick: () => move(idx, 1) }),
+      h('button', { type: 'button', title: 'Caption', textContent: 'Edit caption', onclick: () => caption(m) }),
+      h('button', { type: 'button', title: 'Replace', textContent: 'Replace', onclick: () => replace(m) }),
+      h('button', { type: 'button', title: 'Delete', textContent: 'Delete', onclick: () => remove(m) }));
+    return h('div', { className: 'ph' }, media, h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
       u && h('a', { className: 'btn ghost download', href: u, download: '', textContent: 'Download original', title: 'Download the high-resolution original' }),
       controls);
   });
@@ -1432,13 +1425,15 @@ async function addFiles(files) { if (!files.length) return; await handleFiles(fi
 function replace(m) {
   const inp = h('input', { type: 'file', accept: 'image/*,video/*', onchange: async () => {
     if (!inp.files[0]) return;
-    await handleFiles([inp.files[0]], m[F.category] || 'General'); await remove2(m); await loadCardMedia(); } });
+    if (!await handleFiles([inp.files[0]], m[F.category] || 'General')) return;
+    if (await remove2(m)) await loadCardMedia(); } });
   inp.click();
 }
 async function remove2(m) {
   const ok = await call('DELETE', mpath(m));
-  if (!ok) { toast('Could not delete the replaced file from S3.'); return; }
+  if (!ok) { toast('Could not delete the replaced file from S3.'); return false; }
   meta(m, { deleted: true });
+  return true;
 }
 
 /* booking request: show the WhatsApp contact */
