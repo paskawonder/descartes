@@ -172,6 +172,10 @@
   }
   #gallery .head .section-title { margin: 0; border: 0; padding: 0; }
   #gallery .gallery-title { margin:0; }
+  #galleryLoc { flex: 1; min-width: 0; }
+  #galleryAddPhotos, #galleryAddVideos { padding: 6px 10px; font-size: 9px; letter-spacing: 1px; white-space: nowrap; }
+  .media-upload-status { font-size: 10px; color: var(--accent); }
+  #galleryUploadStatus:empty { display: none; }
   #galleryLoc {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
@@ -605,6 +609,11 @@
   <div class="head">
     <button type="button" class="chip gallery-title" id="galleryOpenAll" title="Open all media">All Media</button>
     <span id="galleryLoc"></span>
+    <button type="button" class="btn" id="galleryAddPhotos">Add Photos</button>
+    <button type="button" class="btn ghost" id="galleryAddVideos">Add Videos</button>
+    <input id="galleryPhotoFiles" type="file" accept="image/*" multiple hidden>
+    <input id="galleryVideoFiles" type="file" accept="video/*" multiple hidden>
+    <span id="galleryUploadStatus" class="media-upload-status" aria-live="polite"></span>
   </div>
   <div id="media"></div>
 </div>
@@ -811,6 +820,12 @@ function closePanel() {
 }
 $('close').onclick = closePanel;
 $('galleryClose').onclick = () => { $('gallery').classList.remove('open'); document.body.classList.remove('gallery-open'); };
+$('galleryAddPhotos').onclick = () => $('galleryPhotoFiles').click();
+$('galleryAddVideos').onclick = () => $('galleryVideoFiles').click();
+['galleryPhotoFiles', 'galleryVideoFiles'].forEach(id => $(id).onchange = e => {
+  const input = e.target;
+  addFiles([...input.files]).finally(() => { input.value = ''; });
+});
 $('lightboxClose').onclick = () => $('lightbox').style.display = 'none';
 /* keep clicks/scrolls on the floating boxes from reaching the map */
 ['header', 'panel', 'gallery', 'add', 'sidebar'].forEach(id => { L.DomEvent.disableClickPropagation($(id)); L.DomEvent.disableScrollPropagation($(id)); });
@@ -927,9 +942,7 @@ async function handleFiles(fileList, category = 'General') {
   const render = () => {
     mediaUploadStatus = 'Uploading ' + done + '/' + files.length + ' … ' +
       Math.round(progress.reduce((x, y) => x + y, 0) / files.length) + '%';
-    const status = $('mediaUploadStatus');
-    if (status) status.textContent = mediaUploadStatus;
-    return ok === files.length;
+    document.querySelectorAll('.media-upload-status').forEach(status => { status.textContent = mediaUploadStatus; });
   };
   render();
   const queue = files.map((f, i) => i);
@@ -949,8 +962,8 @@ async function handleFiles(fileList, category = 'General') {
     (failed.length ? ' — failed: ' + failed.slice(0, 3).join('; ') + (failed.length > 3 ? '…' : '') : '');
   if (locId === cardId) await loadCardMedia();
   else if (locId === currentLocId) await loadMedia(locId);
-  const status = $('mediaUploadStatus');
-  if (status) status.textContent = mediaUploadStatus;
+  document.querySelectorAll('.media-upload-status').forEach(status => { status.textContent = mediaUploadStatus; });
+  return ok === files.length;
 }
 
 /* Google Maps Link Parsing & Add Location */
@@ -1283,23 +1296,40 @@ async function compress(file, max = 2400, q = 0.85) {
 
 /* hotel card */
 let cardId = null, mediaOnly = false, gTab = 'All', cardMedia = [];
-function openCard(id) {
+function setCardRoute(id, media, replace = false) {
+  const hash = '#/l/' + encodeURIComponent(id) + (media ? '/media' : '');
+  if (location.hash === hash) return;
+  history[replace ? 'replaceState' : 'pushState'](null, '', hash);
+}
+function openCard(id, updateRoute = true) {
   cardId = id; currentLocId = id; mediaOnly = false; gTab = 'All'; editVals = {};
   $('card').classList.add('open'); $('card').scrollTop = 0;
-  history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
+  if (updateRoute) setCardRoute(id, false);
   drawCard();
 }
-function openAllMedia(id) {
+function openAllMedia(id, updateRoute = true) {
   cardId = id; currentLocId = id; mediaOnly = true; gTab = 'All';
   mediaUploadStatus = '';
   $('card').classList.add('open'); $('card').scrollTop = 0;
-  history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
+  if (updateRoute) setCardRoute(id, true);
   drawCard(); loadCardMedia();
 }
-function closeCard() { $('card').classList.remove('open'); cardId = null; mediaOnly = false; if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+function closeCard(clearRoute = true) {
+  $('card').classList.remove('open'); cardId = null; mediaOnly = false;
+  if (clearRoute && location.hash) history.replaceState(null, '', location.pathname + location.search);
+}
 $('cardClose').onclick = closeCard;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { $('booking').classList.remove('open'); closeCard(); } });
-function routeFromHash() { const m = location.hash.match(/^#\/l\/(.+)$/); if (m && places.has(decodeURIComponent(m[1]))) openCard(decodeURIComponent(m[1])); }
+function routeFromHash() {
+  const m = location.hash.match(/^#\/l\/([^/]+)(\/media)?$/);
+  if (!m) { if (cardId) closeCard(false); return; }
+  let id;
+  try { id = decodeURIComponent(m[1]); } catch (e) { return; }
+  if (!places.has(id)) { if (cardId) closeCard(false); return; }
+  if (m[2]) openAllMedia(id, false);
+  else openCard(id, false);
+}
+window.addEventListener('hashchange', routeFromHash);
 
 let editVals = {};
 const curType = () => {
@@ -1322,7 +1352,7 @@ function drawCard() {
       h('h2', { textContent: full(p.loc).name || '(unnamed)' }),
       h('div', { className: 'sub', textContent: sub }),
       h('div', { className: 'row' },
-        h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => { mediaOnly = false; drawCard(); } })),
+        h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => openCard(cardId) })),
       drawPhotos());
     return;
   }
@@ -1391,9 +1421,11 @@ function drawPhotos() {
   });
   const up = mediaOnly && h('div', { className: 'upload-box' },
     h('p', { textContent: 'Add up to 10 photos or videos. New media starts in General; change its category on the picture.' }),
-    h('button', { className: 'btn', type: 'button', textContent: 'Add Media', onclick: () => $('mediaPageFile').click() }),
-    h('input', { id: 'mediaPageFile', type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
-    h('span', { id: 'mediaUploadStatus', textContent: mediaUploadStatus }));
+    h('button', { className: 'btn', type: 'button', textContent: 'Add Photos', onclick: () => $('mediaPagePhotos').click() }),
+    h('button', { className: 'btn ghost', type: 'button', textContent: 'Add Videos', onclick: () => $('mediaPageVideos').click() }),
+    h('input', { id: 'mediaPagePhotos', type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
+    h('input', { id: 'mediaPageVideos', type: 'file', accept: 'video/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
+    h('span', { id: 'mediaUploadStatus', className: 'media-upload-status', textContent: mediaUploadStatus }));
   return h('div', {}, h('h4', { textContent: 'Photos & video', style: 'margin:30px 0 8px;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)' }), tabs, up,
     tiles.length ? h('div', { className: 'photos' }, ...tiles) : h('p', { textContent: 'No photos in this gallery yet.', style: 'color:var(--muted)' }));
 }
