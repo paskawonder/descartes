@@ -23,12 +23,13 @@ import java.util.regex.Pattern;
 @RestController
 public class MapsLinkResolverController {
 
-    private static final Set<String> SHORT_LINK_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co");
-    private static final Set<String> GOOGLE_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co", "google.com", "www.google.com", "maps.google.com");
+    private static final Set<String> SHORT_LINK_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co", "share.google");
+    private static final Set<String> GOOGLE_HOSTS = Set.of("maps.app.goo.gl", "goo.gl", "g.co", "share.google", "google.com", "www.google.com", "maps.google.com");
     private static final Pattern COORDINATES = Pattern.compile(
             "!3d(-?\\d{1,3}(?:\\.\\d+)?)!4d(-?\\d{1,3}(?:\\.\\d+)?)"
                     + "|@(-?\\d{1,3}(?:\\.\\d+)?),\\s*(-?\\d{1,3}(?:\\.\\d+)?)"
                     + "|(?:[?&]|^)(?:q|ll|query|center|destination|daddr)=(-?\\d{1,3}(?:\\.\\d+)?),\\s*(-?\\d{1,3}(?:\\.\\d+)?)");
+    private static final Pattern PAGE_TITLE = Pattern.compile("(?is)<title[^>]*>(.*?)</title>");
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -129,10 +130,22 @@ public class MapsLinkResolverController {
             double lat = Double.parseDouble(coordinates.group(latGroup));
             double lon = Double.parseDouble(coordinates.group(lonGroup));
             if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                return new ResolvedMapsLink(lat, lon, placeName(uri), null, null, null);
+                String name = placeName(uri);
+                if (name.isBlank()) name = pageTitle(page);
+                return new ResolvedMapsLink(lat, lon, name, null, null, null);
             }
         }
         return null;
+    }
+
+    private static String pageTitle(String page) {
+        Matcher title = PAGE_TITLE.matcher(page);
+        if (!title.find()) return "";
+        String name = title.group(1).replaceAll("(?is)<[^>]+>", " ")
+                .replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'")
+                .replace("&lt;", "<").replace("&gt;", ">").trim();
+        name = name.replaceFirst("(?i)\\s*[-|–]\\s*Google Maps\\s*$", "").trim();
+        return "Google Maps".equalsIgnoreCase(name) ? "" : name;
     }
 
     private static String placeName(URI uri) {

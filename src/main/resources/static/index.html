@@ -114,8 +114,6 @@
     color: var(--muted);
   }
   #panel .meta:empty { display: none; }
-  #uploadSec { display: none; }                 /* upload UI only appears in menu mode */
-  body.menu-open #uploadSec { display: block; }
   #panel .coords {
     font-size: 12px;
     color: var(--accent);
@@ -252,12 +250,6 @@
     transition: background 0.2s;
   }
   .upload-btn-label:hover, #add button[type=submit]:hover { background: var(--ink-soft); }
-  #mediaCategory {
-    display: block; width: 100%; margin: 0 0 10px; padding: 8px 12px;
-    border: 1px solid var(--line); border-radius: 6px; background: #FFF;
-    font: inherit; font-size: 12px; color: var(--ink); text-align: center;
-  }
-  #mediaCategory:focus { outline: none; border-color: var(--ink); }
   #media .media-item { position: relative; }
   #media .tag {
     position: absolute; top: 6px; left: 6px; max-width: calc(100% - 12px);
@@ -266,8 +258,7 @@
     text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     pointer-events: none;
   }
-  #fileInput { display: none; }
-  #uploadStatus { display: block; margin-top: 8px; font-size: 11px; color: var(--accent); }
+  #mediaUploadStatus { display: block; margin-top: 8px; font-size: 11px; color: var(--accent); }
 
   /* Add location */
   #add {
@@ -480,6 +471,8 @@
   #cardClose:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
   #card .sheet { max-width:980px; margin:0 auto; padding:56px 20px 60px; }
   #card h2 { margin:0; font-family:'Cormorant Garamond',Georgia,serif; font-size:40px; font-weight:600; }
+  #card .card-name { display:block; width:100%; margin:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--ink); font:600 40px 'Cormorant Garamond',Georgia,serif; }
+  #card .card-name:focus { outline:2px solid var(--accent); outline-offset:3px; }
   #card .sub { margin:6px 0 16px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
   #card .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:26px; }
   #card .row a { font-size:12px; color:var(--ink); }
@@ -504,7 +497,7 @@
   #booking.open { display:flex; }
   #booking .bbox { width:min(420px,92vw); padding:24px; border-radius:var(--radius); background:var(--surface); display:grid; gap:10px; }
   @media (max-width:1100px) { #toolbar { top:calc(var(--gap) + 125px); left:var(--gap); right:var(--gap); } #listView { padding:200px 16px 40px; } }
-  @media (max-width:700px) { #card h2 { font-size:30px; margin-right:48px; } #card .sheet { padding-top:36px; } #cardClose { top:22px; right:16px; } #toolbar { top:110px; } }
+  @media (max-width:700px) { #card h2, #card .card-name { font-size:30px; margin-right:48px; } #card .sheet { padding-top:36px; } #cardClose { top:22px; right:16px; } #toolbar { top:110px; } }
   @media (max-width:700px) { #card .photos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } }
   @media (max-width:400px) { #card .photos { grid-template-columns:minmax(0,1fr); } }
   @media (max-width:700px) { body.view-list #listView { padding-top:290px; } }
@@ -604,17 +597,6 @@
   <div id="meta" class="meta"></div>
   <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full Card →</a>
 
-  <div id="uploadSec">
-  <div class="section-title">Add Media</div>
-  <div class="upload-box" id="dropZone">
-    <p>Drop up to 10 photos or videos here, or</p>
-    <input id="mediaCategory" list="categoryList" placeholder="Category (e.g. Food)" autocomplete="off">
-    <datalist id="categoryList"></datalist>
-    <label class="upload-btn-label" for="fileInput">Choose Files</label>
-    <input type="file" id="fileInput" accept="image/*,video/*" multiple>
-    <span id="uploadStatus"></span>
-  </div>
-  </div>
 </div>
 
 <!-- Media gallery — detached strip along the bottom of the screen -->
@@ -635,20 +617,7 @@
     <input id="gmLink" placeholder="Paste a Google Maps link" autocomplete="off" required>
   </label>
   <span id="gmHint"></span>
-  <label>Name
-    <input id="locName" placeholder="Hotel / place name" autocomplete="off" required>
-  </label>
-  <label>Country
-    <input id="country" list="countryList" placeholder="e.g. Italy" autocomplete="off" required>
-  </label>
-  <datalist id="countryList"></datalist>
-  <label>Region
-    <input id="region" placeholder="e.g. Tuscany" autocomplete="off">
-  </label>
-  <label>Website
-    <input id="website" type="url" placeholder="https://…" autocomplete="off">
-  </label>
-  <button type="submit" id="addSave">Save Destination</button>
+  <button type="submit" id="addSave">Save Location</button>
 </form>
 
 
@@ -755,8 +724,6 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape') $('lightbox').style.display = 'none';
 });
 
-const knownCategories = new Set();
-
 async function loadMedia(locationId) {
   const box = $('media');
   box.textContent = 'Loading gallery…';
@@ -764,8 +731,6 @@ async function loadMedia(locationId) {
     const items = (await getJson(`/api/locations/${encodeURIComponent(locationId)}/media`) || []).map(expandMedia);
     box.replaceChildren();
     lbImages = [];
-    (items || []).forEach(i => i[F.category] && knownCategories.add(String(i[F.category]).trim()));
-    $('categoryList').replaceChildren(...[...knownCategories].sort().map(v => Object.assign(document.createElement('option'), { value: v })));
     if (!items || !items.length) {
       box.textContent = 'No media assets found for this location.';
       return;
@@ -817,7 +782,6 @@ async function showPanel(loc, circle) {
   $('meta').textContent = loc[F.country] || '';
   $('openCardLink').onclick = e => { e.preventDefault(); openCard(loc.id); };
   $('mapsLink').href = safeUrl(loc[F.link]) || `https://www.google.com/maps?q=${loc.lat},${loc.lon}`;
-  $('uploadStatus').textContent = '';
   $('galleryLoc').textContent = loc.name || '';
   $('panel').style.display = 'block';
   $('gallery').classList.add('open');
@@ -846,7 +810,6 @@ map.on('click', closePanel);
 
 /* Alphabetical location list (left sidebar) */
 const places = new Map(); // id -> { loc, circle }
-let listQueued = false;
 
 const byName = (a, b) => {
   const an = (a.loc.name || '').trim(), bn = (b.loc.name || '').trim();
@@ -854,22 +817,7 @@ const byName = (a, b) => {
   return an.localeCompare(bn, undefined, { sensitivity: 'base', numeric: true });
 };
 
-const countryOf = loc => String(loc[F.country] || '').trim();
 const openCountries = new Set();
-
-function fillOptions(id, values) {
-  $(id).replaceChildren(...[...new Set(values.filter(Boolean))].sort().map(v => Object.assign(document.createElement('option'), { value: v })));
-}
-
-function renderList() {
-  fillOptions('countryList', [...places.values()].map(p => countryOf(p.loc)));
-}
-
-function queueList() {
-  if (listQueued) return;
-  listQueued = true;
-  requestAnimationFrame(() => { listQueued = false; renderList(); });
-}
 
 function syncListActive() {
   const cur = currentLocId == null ? null : String(currentLocId);
@@ -890,9 +838,8 @@ function addCircle(loc) {
       L.DomEvent.stopPropagation(e);
       showPanel(loc, e.target);
     }).addTo(map);
-  places.set(loc.id, { loc, circle });
-  queueList();
-  return circle;
+    places.set(loc.id, { loc, circle });
+    return circle;
 }
 
 async function init() {
@@ -910,6 +857,7 @@ async function init() {
 
 /* S3 upload: API gives a presigned PUT URL -> browser PUTs the file to S3 -> API stores the media record */
 const MAX_UPLOAD_MB = 200;
+let mediaUploadStatus = '';
 
 async function errorText(res) {
   let m = res.status + ' ' + res.statusText;
@@ -917,7 +865,7 @@ async function errorText(res) {
   return m;
 }
 
-async function createMediaRecord(url, id = uuid(), locId = currentLocId, reload = true, category = null) {
+async function createMediaRecord(url, id = uuid(), locId = currentLocId, reload = true, category = 'General') {
   if (!locId) return;
   const media = mediaPayload({ id, url, [F.category]: category });
   const res = await fetch(`${API}/api/locations/${encodeURIComponent(locId)}/media`, {
@@ -959,23 +907,21 @@ async function uploadOne(file, locId, category, onProgress) {
   await createMediaRecord(slot.publicUrl, slot.mediaId, locId, false, category);
 }
 
-async function handleFiles(fileList) {
-  const status = $('uploadStatus');
+async function handleFiles(fileList, category = 'General') {
   if (!currentLocId || !fileList || !fileList.length) return;
-  if (uploading) { status.textContent = 'An upload is already running…'; return; }
-  if (!$('mediaCategory').value.trim()) {
-    status.textContent = 'Enter a category first, then choose files';
-    $('mediaCategory').focus();
-    return;
-  }
+  if (uploading) { mediaUploadStatus = 'An upload is already running…'; drawCard(); return; }
   let files = Array.from(fileList), note = '';
   if (files.length > MAX_FILES) { note = ' (only the first ' + MAX_FILES + ' files were used)'; files = files.slice(0, MAX_FILES); }
 
   uploading = true;
-  const locId = currentLocId, category = $('mediaCategory').value.trim(), progress = files.map(() => 0), failed = [];
+  const locId = currentLocId, progress = files.map(() => 0), failed = [];
   let done = 0;
-  const render = () => status.textContent = 'Uploading ' + done + '/' + files.length + ' … ' +
-    Math.round(progress.reduce((x, y) => x + y, 0) / files.length) + '%';
+  const render = () => {
+    mediaUploadStatus = 'Uploading ' + done + '/' + files.length + ' … ' +
+      Math.round(progress.reduce((x, y) => x + y, 0) / files.length) + '%';
+    const status = $('mediaUploadStatus');
+    if (status) status.textContent = mediaUploadStatus;
+  };
   render();
   const queue = files.map((f, i) => i);
   const worker = async () => {
@@ -988,24 +934,15 @@ async function handleFiles(fileList) {
   };
   try {
     await Promise.all(Array.from({ length: Math.min(PARALLEL, files.length) }, worker));
-    if (locId === currentLocId) await loadMedia(locId);
-  } finally { uploading = false; $('fileInput').value = ''; }
+  } finally { uploading = false; }
   const ok = files.length - failed.length;
-  status.textContent = 'Uploaded ' + ok + ' of ' + files.length + ' file' + (files.length === 1 ? '' : 's') + note +
+  mediaUploadStatus = 'Uploaded ' + ok + ' of ' + files.length + ' file' + (files.length === 1 ? '' : 's') + note +
     (failed.length ? ' — failed: ' + failed.slice(0, 3).join('; ') + (failed.length > 3 ? '…' : '') : '');
+  if (locId === cardId) await loadCardMedia();
+  else if (locId === currentLocId) await loadMedia(locId);
+  const status = $('mediaUploadStatus');
+  if (status) status.textContent = mediaUploadStatus;
 }
-
-$('fileInput').addEventListener('change', e => handleFiles(e.target.files));
-
-/* Drag and drop for upload box */
-const dropZone = $('dropZone');
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  handleFiles(e.dataTransfer.files);
-});
 
 /* Google Maps Link Parsing & Add Location */
 let draftMarker = null;
@@ -1032,11 +969,9 @@ function parseMapsLink(input) {
 }
 
 let draft = null;
-let nameTouched = false;   // true once the user edits the name by hand
-$('locName').addEventListener('input', () => { nameTouched = true; });
 
 function setDraft(lat, lon, name) {
-  draft = { lat: +lat, lon: +lon, name: name || '' };
+  draft = { lat: +lat, lon: +lon, name: name || '', country: '', region: '', website: '' };
   if (!draftMarker) draftMarker = L.circleMarker([lat, lon], DRAFT).addTo(map);
   else draftMarker.setLatLng([lat, lon]);
 }
@@ -1051,13 +986,12 @@ function openAdd(latlng) {
   closePanel();
   const lat = latlng.lat.toFixed(6), lon = latlng.lng.toFixed(6);
   setDraft(lat, lon);
-  $('locName').value = ''; nameTouched = false;
   $('gmLink').value = `https://www.google.com/maps?q=${lat},${lon}`;
   hint(`Found coordinates: ${lat}, ${lon}`, 'ok');
   $('add').style.display = 'block';
   document.body.classList.add('add-open');
   $('gmLink').focus();
-  resetGeo(); geo(lat, lon);
+  pendingGeo = geo(lat, lon);
 }
 
 /* "Add location +" button: open the form without a pin (paste a Google Maps link) */
@@ -1065,9 +999,9 @@ function openAddBlank() {
   if ($('add').style.display === 'block') return $('gmLink').focus();
   closePanel();
   draft = null;
+  pendingGeo = Promise.resolve();
   if (draftMarker) { draftMarker.remove(); draftMarker = null; }
   $('gmLink').value = '';
-  $('locName').value = ''; nameTouched = false; resetGeo();
   hint('Paste a Google Maps link, or right-click the map to drop a pin.');
   $('add').style.display = 'block';
   document.body.classList.add('add-open');
@@ -1076,25 +1010,17 @@ function openAddBlank() {
 $('addBtn').onclick = openAddBlank;
 
 function closeAdd() {
+  clearTimeout(linkTimer);
+  linkSeq++;
   draft = null;
   if (draftMarker) { draftMarker.remove(); draftMarker = null; }
   $('add').style.display = 'none';
   document.body.classList.remove('add-open');
-  resetGeo();
-  $('locName').value = ''; nameTouched = false;
 }
 
 map.on('contextmenu', e => openAdd(e.latlng));
 $('map').addEventListener('contextmenu', e => e.preventDefault());$('addClose').onclick = closeAdd;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAdd(); });
-
-/* auto-fill a field, but never overwrite something the user typed */
-function autofill(id, val) {
-  const el = $(id);
-  if (!el || !val) return;
-  if (!el.value || el.dataset.auto === el.value) { el.value = val; el.dataset.auto = val; }
-}
-function resetGeo() { for (const id of ['country', 'region', 'website']) { $(id).value = ''; $(id).dataset.auto = ''; } }
 
 /* country / region / venue website from coordinates (OpenStreetMap Nominatim; website only when OSM knows the venue) */
 let geoSeq = 0;
@@ -1106,22 +1032,22 @@ async function geo(lat, lon) {
     const j = await res.json();
     if (seq !== geoSeq || !draft) return;
     const a = j.address || {}, x = j.extratags || {};
-    autofill('country', a.country);
-    autofill('region', a.state || a.region || a.province || a.county);
-    autofill('website', x.website || x['contact:website'] || x.url);
+    draft.country = a.country || draft.country;
+    draft.region = a.state || a.region || a.province || a.county || draft.region;
+    draft.website = x.website || x['contact:website'] || x.url || draft.website;
+    if (!draft.name) draft.name = j.name || String(j.display_name || '').split(',')[0].trim();
   } catch (e) {}
 }
 
 function applyResolved(r) {
   setDraft(r.lat, r.lon, r.name);
-  if (!nameTouched && r.name) $('locName').value = r.name;
+  Object.assign(draft, { country: r.country || '', region: r.region || '', website: r.website || '' });
   map.panTo([r.lat, r.lon]);
-  autofill('country', r.country); autofill('region', r.region); autofill('website', r.website);
   hint(`Found coordinates: ${r.lat}, ${r.lon}`, 'ok');
 }
 
 /* Google Maps short links need a server to follow redirects: GET /api/resolve-link?url=… -> {lat, lon, name, country, region, website} */
-const MAPS_SHORT_HOSTS = new Set(['maps.app.goo.gl', 'goo.gl', 'g.co']);
+const MAPS_SHORT_HOSTS = new Set(['maps.app.goo.gl', 'goo.gl', 'g.co', 'share.google']);
 function normalizeShortMapsLink(value) {
   const input = /^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : 'https://' + value;
   try {
@@ -1130,12 +1056,14 @@ function normalizeShortMapsLink(value) {
   } catch (e) { return null; }
 }
 let linkTimer, linkSeq = 0;
+let pendingGeo = Promise.resolve();
 $('gmLink').addEventListener('input', () => {
   clearTimeout(linkTimer);
   const v = $('gmLink').value.trim(), seq = ++linkSeq;
+  pendingGeo = Promise.resolve();
   if (!v) { draft = null; return hint(''); }
   const r = parseMapsLink(v);
-  if (r) { applyResolved(r); return geo(r.lat, r.lon); }
+  if (r) { applyResolved(r); pendingGeo = geo(r.lat, r.lon); return; }
   draft = null;
   const shortLink = normalizeShortMapsLink(v);
   if (!shortLink) return hint('No coordinates found in link', 'err');
@@ -1149,7 +1077,7 @@ $('gmLink').addEventListener('input', () => {
       const lat = parseFloat(d.lat), lon = parseFloat(d.lon);
       if (isNaN(lat) || isNaN(lon)) throw new Error('no coordinates');
       applyResolved({ lat, lon, name: d.name || '', country: d.country, region: d.region, website: d.website });
-      if (!d.country || !d.region) geo(lat, lon);
+      pendingGeo = geo(lat, lon);
     } catch (e) {
       if (seq === linkSeq) hint('Could not read the short link (backend resolver /api/resolve-link not available). Open it in the browser and paste the full URL from the address bar.', 'err');
     }
@@ -1159,17 +1087,17 @@ $('gmLink').addEventListener('input', () => {
 $('add').onsubmit = async ev => {
   ev.preventDefault();
   if (!draft) return hint('Paste a valid Google Maps link first', 'err');
-  const name = $('locName').value.trim();
-  if (!name) return hint('Enter a name', 'err');
-  const body = locationPayload({
-    id: uuid(), name, lat: draft.lat, lon: draft.lon,
-    [F.country]: $('country').value.trim(),
-    region: $('region').value.trim(),
-    website: $('website').value.trim(),
-    [F.link]: $('gmLink').value.trim()
-  });
+  const pendingDraft = draft;
   $('addSave').disabled = true;
   try {
+    await pendingGeo;
+    if (draft !== pendingDraft) return;
+    const resolved = { ...pendingDraft };
+    const body = locationPayload({
+      id: uuid(), name: resolved.name || `Location ${resolved.lat.toFixed(5)}, ${resolved.lon.toFixed(5)}`,
+      lat: resolved.lat, lon: resolved.lon, [F.country]: resolved.country,
+      region: resolved.region, website: resolved.website, [F.link]: $('gmLink').value.trim()
+    });
     const res = await fetch(API + '/api/locations', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -1262,7 +1190,7 @@ async function call(method, path, body) {
 }
 const done = ok => toast(ok ? 'Saved' : 'Saved on this device only — API endpoint is missing');
 
-const TYPES = ['Hotels', 'Restaurants', 'Experiences', 'Destinations'];
+const TYPES = ['Hotels', 'Restaurants', 'Experiences'];
 /* Fields and photo galleries depend on the location type.
    FIELDS entry: [key, label, kind, appliesTo (omit = every type), {type: label override}] */
 const GALLERIES = {
@@ -1270,24 +1198,22 @@ const GALLERIES = {
   Hotels: ['Rooms', 'Restaurants', 'Spa', 'Views', 'General'],
   Restaurants: ['Food', 'Drinks', 'Interior', 'Views', 'General'],
   Experiences: ['Activities', 'Views', 'Moments', 'General'],
-  Destinations: ['Highlights', 'Landscapes', 'Culture', 'Views', 'General']
 };
 const FIELDS = [
-  ['subcategory', 'Category', 'text', null, { Hotels: 'Hotel category (e.g. 5★, boutique)', Restaurants: 'Cuisine & style', Experiences: 'Experience type', Destinations: 'Destination type' }],
+  ['subcategory', 'Category', 'text', null, { Hotels: 'Hotel category (e.g. 5★, boutique)', Restaurants: 'Cuisine & style', Experiences: 'Experience type' }],
   ['region', 'Region', 'text'], ['city', 'City', 'text'], ['address', 'Address', 'text'], ['website', 'Official website', 'text'],
   ['description', 'Description', 'area'], ['impressions', 'Team impressions', 'area'],
-  ['highlights', 'Highlights', 'area', ['Experiences', 'Destinations'], { Experiences: 'What you will do' }],
+  ['highlights', 'Highlights', 'area', ['Experiences'], { Experiences: 'What you will do' }],
   ['bestRooms', 'Best room categories', 'area', ['Hotels']], ['roomViews', 'Room location & views', 'area', ['Hotels']],
-  ['dining', 'Restaurants & dining', 'area', ['Hotels', 'Destinations'], { Destinations: 'Food & drink' }],
+  ['dining', 'Restaurants & dining', 'area', ['Hotels']],
   ['facilities', 'Spa, pools, beach & facilities', 'area', ['Hotels']],
   ['menu', 'Signature dishes & menu', 'area', ['Restaurants']], ['ambience', 'Ambience & seating', 'area', ['Restaurants']],
   ['priceLevel', 'Price level', 'text', ['Restaurants']], ['reservations', 'Reservation tips', 'area', ['Restaurants']],
   ['duration', 'Duration', 'text', ['Experiences']], ['logistics', 'Booking & logistics', 'area', ['Experiences']],
-  ['gettingThere', 'Getting there', 'area', ['Destinations']], ['whereToStay', 'Where to stay', 'area', ['Destinations']],
   ['pros', 'Key advantages', 'area'], ['cons', 'Features & drawbacks', 'area'],
   ['suitableFor', 'Suitable for (comma separated)', 'text', null, {
     Hotels: 'Suitable for (couples, families, wellness, ski, beach…)', Restaurants: 'Suitable for (couples, groups, business, celebrations…)',
-    Experiences: 'Suitable for (families, adventure, culture, wellness…)', Destinations: 'Suitable for (couples, families, culture, nature…)' }],
+    Experiences: 'Suitable for (families, adventure, culture, wellness…)' }],
   ['bestSeason', 'Best season', 'text'], ['lastVisit', 'Last team visit', 'date'], ['visitedBy', 'Visited by', 'text']
 ];
 const fieldsFor = t => FIELDS.filter(f => !f[3] || f[3].includes(t));
@@ -1367,6 +1293,7 @@ function openCard(id) {
 }
 function openAllMedia(id) {
   cardId = id; currentLocId = id; editing = false; mediaOnly = true; gTab = 'All';
+  mediaUploadStatus = '';
   $('card').classList.add('open'); $('card').scrollTop = 0;
   history.replaceState(null, '', '#/l/' + encodeURIComponent(id));
   drawCard(); loadCardMedia();
@@ -1377,18 +1304,24 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen())
 function routeFromHash() { const m = location.hash.match(/^#\/l\/(.+)$/); if (m && places.has(decodeURIComponent(m[1]))) openCard(decodeURIComponent(m[1])); }
 
 let editVals = {};
-const curType = () => ((!mediaOnly || editing && canEdit()) && editVals.type != null) ? editVals.type : (full((places.get(cardId) || { loc: {} }).loc).type || '');
+const curType = () => {
+  const type = ((!mediaOnly || editing && canEdit()) && editVals.type != null)
+    ? editVals.type : (full((places.get(cardId) || { loc: {} }).loc).type || '');
+  return type === 'Destinations' ? 'Experiences' : type;
+};
 function collectEdits() {
   FIELDS.forEach(([k]) => { const e = $('f_' + k); if (e) editVals[k] = e.value.trim(); });
   if ($('f_type')) editVals.type = $('f_type').value;
+  if ($('f_name')) editVals.name = $('f_name').value.trim();
 }
 function drawCard() {
   const p = places.get(cardId); if (!p) return;
-  const edit = !mediaOnly || editing && canEdit(), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc), t = f.type || '', box = $('sheet');
+  const edit = !mediaOnly || editing && canEdit(), f = edit ? { ...full(p.loc), ...editVals } : full(p.loc);
+  const t = f.type === 'Destinations' ? 'Experiences' : f.type || '', box = $('sheet');
   const sub = [t, f.city, f.region, p.loc.country].filter(Boolean).join(' · ') + (f.subcategory ? '  ·  ' + f.subcategory : '');
   if (mediaOnly) {
     box.replaceChildren(
-      h('h2', { textContent: p.loc.name || '(unnamed)' }),
+      h('h2', { textContent: full(p.loc).name || '(unnamed)' }),
       h('div', { className: 'sub', textContent: sub }),
       h('div', { className: 'row' },
         h('button', { className: 'btn ghost', type: 'button', textContent: 'Full Card', onclick: () => { mediaOnly = false; editing = false; drawCard(); } }),
@@ -1415,11 +1348,14 @@ function drawCard() {
     else body = h('p', { textContent: kind === 'date' ? new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : v });
     return h('div', { className: 'blk' }, h('h4', { textContent: labelOf(fd, t) }), body);
   });
-  box.replaceChildren(h('h2', { textContent: p.loc.name || '(unnamed)' }), h('div', { className: 'sub', textContent: sub }), row, typeBlock, ...blocks);
+  const name = h('input', { id: 'f_name', className: 'card-name', value: f.name || '', placeholder: '(unnamed location)' });
+  name.setAttribute('aria-label', 'Location name');
+  box.replaceChildren(name, h('div', { className: 'sub', textContent: sub }), row, typeBlock, drawPhotos(false), ...blocks);
 }
 async function saveCard() {
   collectEdits();
-  const p = places.get(cardId); LS.loc[cardId] = { ...LS.loc[cardId], ...editVals }; save();
+  const p = places.get(cardId); LS.loc[cardId] = { ...LS.loc[cardId], ...editVals }; Object.assign(p.loc, editVals); save();
+  p.circle.setTooltipContent(p.loc.name || '(unnamed)');
   const L = p.loc; done(await call('POST', '/api/locations', locationPayload({ ...L, ...LS.loc[cardId] })));
   editing = false; editVals = {}; drawCard(); applyFilter();
   if (document.body.classList.contains('view-list')) drawFilters();
@@ -1438,28 +1374,44 @@ async function loadCardMedia() {
 }
 const isImg = u => /\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(u || '');
 function drawPhotos(edit) {
-  const gl = galleriesFor(curType()), cats = [...new Set([...gl, ...cardMedia.map(m => m[F.category]).filter(Boolean)])];
+  const cats = [...new Set([...galleriesFor(curType()), ...cardMedia.map(m => m[F.category]).filter(Boolean), 'General'])];
   const tabs = h('div', { className: 'chips tabs' }, ...['All', ...cats].map(c => h('button', { type: 'button', className: 'chip' + (c === gTab ? ' on' : ''), textContent: c, onclick: () => { gTab = c; drawCard(); } })));
   const list = cardMedia.filter(m => gTab === 'All' || m[F.category] === gTab), urls = list.filter(m => isImg(m.url)).map(m => safeUrl(m.url));
   const tiles = list.map(m => {
     const u = safeUrl(m.url), media = isImg(u) ? h('img', { src: u, loading: 'lazy', alt: m.caption || '', onclick: () => { lbImages = urls; showLightbox(urls.indexOf(u)); } }) : h('video', { src: u, controls: true, preload: 'metadata' });
     const idx = cardMedia.indexOf(m);
+    const categoryPicker = dropdown({ value: m[F.category] || 'General', options: cats.map(c => ({ value: c, label: c })), onchange: category => setCategory(m, category) });
+    categoryPicker.querySelector('button').setAttribute('aria-label', 'Media category');
+    const controls = (edit || mediaOnly) && h('div', { className: 'ctl' },
+      (edit || mediaOnly) && categoryPicker,
+      edit && h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
+      edit && h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }),
+      edit && h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
+      edit && h('button', { title: 'Replace', textContent: '⇄', onclick: () => replace(m) }),
+      edit && h('button', { title: 'Delete', textContent: '✕', onclick: () => remove(m) }));
     return h('div', { className: 'ph' }, media, (m.caption || edit) && h('div', { className: 'cap', textContent: m.caption || 'No caption' }),
       u && h('a', { className: 'btn ghost download', href: u, download: '', textContent: 'Download original', title: 'Download the high-resolution original' }),
-      edit && h('div', { className: 'ctl' },
-        h('button', { title: 'Move earlier', textContent: '‹', onclick: () => move(idx, -1) }),
-        h('button', { title: 'Move later', textContent: '›', onclick: () => move(idx, 1) }), h('button', { title: 'Caption', textContent: '✎', onclick: () => caption(m) }),
-        h('button', { title: 'Replace', textContent: '⇄', onclick: () => replace(m) }), h('button', { title: 'Delete', textContent: '✕', onclick: () => remove(m) })));
+      controls);
   });
-  const up = edit && h('div', { className: 'row' }, dropdown({ id: 'upCat', value: gl.includes(gTab) ? gTab : (gl[0] || ''), placeholder: 'Gallery', options: gl.map(c => ({ value: c, label: c })) }),
-    h('button', { className: 'btn', type: 'button', textContent: 'Add photos / video', onclick: () => $('cardFile').click() }),
-    h('input', { id: 'cardFile', type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true, onchange: e => addFiles([...e.target.files], $('upCat').value) }));
+  const up = mediaOnly && h('div', { className: 'upload-box' },
+    h('p', { textContent: 'Add up to 10 photos or videos. New media starts in General; change its category on the picture.' }),
+    h('button', { className: 'btn', type: 'button', textContent: 'Add Media', onclick: () => $('mediaPageFile').click() }),
+    h('input', { id: 'mediaPageFile', type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
+    h('span', { id: 'mediaUploadStatus', textContent: mediaUploadStatus }));
   return h('div', {}, h('h4', { textContent: 'Photos & video', style: 'margin:30px 0 8px;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)' }), tabs, up,
     tiles.length ? h('div', { className: 'photos' }, ...tiles) : h('p', { textContent: 'No photos in this gallery yet.', style: 'color:var(--muted)' }));
 }
 const mpath = m => `/api/locations/${encodeURIComponent(cardId)}/media/${encodeURIComponent(m.id)}`;
 const meta = (m, patch) => { Object.assign(m, patch); LS.media[m.id] = { ...LS.media[m.id], ...patch }; save(); };
 async function caption(m) { const c = prompt('Photo caption', m.caption || ''); if (c === null) return; meta(m, { caption: c.trim() }); done(await call('POST', `/api/locations/${encodeURIComponent(cardId)}/media`, mediaPayload(m))); drawCard(); }
+async function setCategory(m, category) {
+  const previous = m[F.category];
+  meta(m, { [F.category]: category });
+  const ok = await call('POST', `/api/locations/${encodeURIComponent(cardId)}/media`, mediaPayload(m));
+  if (!ok) { meta(m, { [F.category]: previous }); toast('Could not update media category'); }
+  else toast('Media category updated');
+  drawCard();
+}
 async function move(i, d) {
   const j = i + d; if (j < 0 || j >= cardMedia.length) return;
   [cardMedia[i], cardMedia[j]] = [cardMedia[j], cardMedia[i]]; cardMedia.forEach((m, k) => meta(m, { order: k }));
@@ -1472,11 +1424,11 @@ async function remove(m) {
   if (!ok) { toast('Could not delete the file from S3. It is still in the library.'); return; }
   meta(m, { deleted: true }); cardMedia = cardMedia.filter(x => x !== m); toast('Deleted from S3 and library.'); drawCard();
 }
-async function addFiles(files, cat) { if (!files.length) return; $('mediaCategory').value = cat; await handleFiles(files); await loadCardMedia(); }
+async function addFiles(files) { if (!files.length) return; await handleFiles(files); }
 function replace(m) {
   const inp = h('input', { type: 'file', accept: 'image/*,video/*', onchange: async () => {
-    if (!inp.files[0]) return; $('mediaCategory').value = m[F.category] || 'General';
-    await handleFiles([inp.files[0]]); await remove2(m); await loadCardMedia(); } });
+    if (!inp.files[0]) return;
+    await handleFiles([inp.files[0]], m[F.category] || 'General'); await remove2(m); await loadCardMedia(); } });
   inp.click();
 }
 async function remove2(m) {
