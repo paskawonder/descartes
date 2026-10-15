@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EFE9DF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Descartes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
 <title>Descartes Finest Collection</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -563,6 +569,162 @@
     body.gallery-open #sidebar, body.panel-open #sidebar, body.add-open #sidebar { display: none; }
   }
 </style>
+
+<style id="ios-upgrade">
+/* ===================================================================
+   iPhone upgrade (Pro Max class: ~440 x 956 pt, Dynamic Island, home indicator)
+   =================================================================== */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --kb: 0px;               /* on-screen keyboard height, set from JS */
+  --top-stack: 96px;       /* bottom edge of the header, set from JS */
+}
+html { -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+html, body { overflow: hidden; }
+/* Fixed, full-bleed layout: the map always fills the screen even while Safari's bars collapse/expand */
+body { position: fixed; inset: 0; width: 100%; -webkit-tap-highlight-color: transparent; }
+#map { position: fixed; inset: 0; width: auto; height: auto; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+button, .chip, .btn, summary, a, label { touch-action: manipulation; }
+#header, .chip, .btn, button, .lcard { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#card .photos img, #lightbox img { -webkit-touch-callout: default; }
+:focus-visible { outline-color: var(--accent); }
+
+/* Floating round buttons (phone only) */
+#mBtn, #fitBtn {
+  display: none; position: fixed; z-index: 1003; width: 46px; height: 46px; padding: 0;
+  align-items: center; justify-content: center; border-radius: 50%;
+  border: 1px solid var(--line); background: rgba(250, 247, 242, .94); color: var(--ink);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow); cursor: pointer;
+}
+#mBtn svg, #fitBtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#mBtn .x { display: none; }
+body.menu-open #mBtn { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+body.menu-open #mBtn .x { display: block; }
+body.menu-open #mBtn .s { display: none; }
+#mBtn:active, #fitBtn:active { transform: scale(.94); }
+#fitBtn { z-index: 1001; }
+body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { display: none !important; }
+
+/* Touch devices: no hover tooltips (they stick after a tap and cover the sheet) */
+@media (hover: none) {
+  .leaflet-tooltip { display: none !important; }
+  #media .media-item:hover { transform: none; box-shadow: none; }
+  .lcard:hover { border-color: var(--line); }
+}
+
+/* Touch devices: 16px inputs stop iOS from zooming the page when a field is focused */
+@media (pointer: coarse) {
+  #card input:not(.card-name), #card textarea, #card select, #booking input, #booking textarea,
+  #add input, #toolbar input, .fbar select { font-size: 16px; }
+  .chip { min-height: 40px; display: inline-flex; align-items: center; }
+  .btn { min-height: 44px; }
+  #card .row a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
+  #card .ph .ctl button { min-height: 38px; padding: 6px 12px; font-size: 13px; }
+  #card .ph .download { min-height: 38px; }
+  .dd-pop { gap: 8px; }
+}
+
+/* ---------------- Phone layout ---------------- */
+@media (max-width: 700px) {
+  :root { --gap: 12px; --gallery-h: 132px; }
+  #mBtn { display: flex; top: calc(var(--sat) + 14px); right: calc(var(--sar) + 14px); }
+  #fitBtn { display: flex; right: calc(var(--sar) + 14px); bottom: calc(var(--sab) + 46px); }
+
+  body #header { top: calc(var(--sat) + 6px); left: calc(var(--sal) + 6px); padding: 10px 14px 8px; max-width: calc(100% - 80px); }
+  body #header .intro { max-width: min(270px, 68vw); font-size: 12px; line-height: 1.5; }
+  body.menu-open #header .intro, body.panel-open #header .intro { display: none; }
+
+  /* search + filters */
+  body #toolbar { top: calc(var(--top-stack) + 2px); left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap)); gap: 8px; flex-wrap: wrap; }
+  body #toolbar input { flex: 1 1 100%; height: 46px; padding: 0 18px; }
+  #toolbar #typeChips { flex: 1 1 0; min-width: 0; }
+  #toolbar .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #toolbar .chips::-webkit-scrollbar { display: none; }
+  #toolbar .chips:last-child { flex: none; }
+  #toolbar .chip { flex: none; }
+
+  /* sidebar button clears the home indicator */
+  body #sidebar { bottom: calc(var(--side-bottom) + var(--sab) + 14px); left: calc(var(--sal) + var(--gap)); }
+  #addBtn { min-height: 48px; }
+  #toast { bottom: calc(var(--sab) + 90px); max-width: calc(100vw - 32px); text-align: center; }
+
+  /* bottom sheets */
+  body #panel {
+    left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap));
+    bottom: calc(var(--sab) + 24px); max-height: 46%;
+    padding: 20px 18px 10px; border-radius: 18px; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.gallery-open #panel { bottom: calc(var(--gallery-h) + var(--sab) + 36px); max-height: calc(100% - var(--gallery-h) - var(--top-stack) - 64px); }
+  body #panel::before { content: ''; display: block; width: 38px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: -10px auto 10px; }
+  body #panel h3 { font-size: 25px; margin-right: 44px; }
+  body #panel .coords { display: inline-flex; align-items: center; min-height: 44px; margin: 0; font-size: 13px; }
+  body #panel #openCardLink { margin-left: 8px; padding: 0 20px; border-radius: 999px; background: var(--ink); color: var(--surface); border-bottom: 0; }
+  #close, #addClose, #galleryClose { width: 44px; height: 44px; top: 8px; right: 6px; font-size: 28px; display: flex; align-items: center; justify-content: center; }
+  body #gallery { left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap)); bottom: calc(var(--sab) + 24px); padding: 8px 14px 12px; border-radius: 18px; }
+  body #gallery .head { padding-right: 44px; gap: 8px; min-height: 44px; align-items: center; }
+  #galleryClose { top: 2px; }
+  #galleryAddVideos { display: none; }
+  #galleryAddPhotos { min-height: 36px; padding: 0 14px; font-size: 10px; }
+  #galleryOpenAll { min-height: 36px; }
+  #galleryLoc { font-size: 16px; }
+  #media { scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: none; }
+  #media::-webkit-scrollbar { display: none; }
+  #media .media-item { width: 124px; scroll-snap-align: start; }
+
+  /* Add-location form rides above the keyboard */
+  body #add {
+    left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap)); top: auto;
+    bottom: calc(var(--sab) + var(--gap) + var(--kb));
+    max-height: calc(var(--vvh, 100dvh) - var(--sat) - 28px);
+    padding: 20px 18px 18px; border-radius: 18px; overscroll-behavior: contain;
+  }
+  #add input { padding: 12px 14px; min-height: 46px; }
+  #add button[type=submit] { min-height: 50px; }
+
+  /* list view: solid top bar so cards never scroll under the logo */
+  body.view-list #listView { z-index: 998; padding: calc(var(--top-stack) + 124px) calc(var(--sar) + 16px) calc(var(--sab) + 40px) calc(var(--sal) + 16px); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  body.view-list::before { content: ''; position: fixed; left: 0; right: 0; top: 0; height: calc(var(--top-stack) + 114px); z-index: 999; pointer-events: none; background: linear-gradient(var(--paper) 90%, rgba(239,233,223,0)); }
+  #listView .grid { grid-template-columns: 1fr; gap: 12px; }
+  .lcard { padding: 16px 18px; min-height: 72px; }
+  .lcard:active { border-color: var(--ink); }
+  .fbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 6px; margin-right: -16px; padding-right: 16px; }
+  .fbar::-webkit-scrollbar { display: none; }
+  .fbar > * { flex: none; }
+
+  /* full card */
+  #card { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  #card .sheet { padding: calc(var(--sat) + 62px) calc(var(--sar) + 18px) calc(var(--sab) + 64px) calc(var(--sal) + 18px); }
+  #cardClose { top: calc(var(--sat) + 12px); right: calc(var(--sar) + 14px); width: 46px; height: 46px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: 34px; }
+  #card .row { gap: 12px; }
+  #card .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -18px; padding-right: 18px; }
+  #card .tabs::-webkit-scrollbar { display: none; }
+  #card .tabs .chip { flex: none; }
+  #booking .bbox { padding-bottom: calc(24px + var(--sab)); }
+
+  /* lightbox */
+  #lightbox { padding: 0; touch-action: pinch-zoom; }
+  #lightbox img { max-width: 100vw; max-height: 100dvh; border-radius: 0; box-shadow: none; -webkit-user-drag: none; }
+  #lightboxClose { top: calc(var(--sat) + 10px); right: calc(var(--sar) + 10px); width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .lb-nav { width: 44px; height: 44px; } #lbPrev { left: calc(var(--sal) + 10px); } #lbNext { right: calc(var(--sar) + 10px); }
+  #lbCount { bottom: calc(var(--sab) + 16px); }
+  .leaflet-bottom { margin-bottom: var(--sab); }
+}
+
+/* Landscape phones: short viewport */
+@media (max-height: 500px) and (pointer: coarse) {
+  :root { --gallery-h: 112px; --gap: 10px; }
+  #header .intro { display: none; }
+  body #panel { width: min(340px, 45vw); max-height: calc(100% - var(--gallery-h) - 80px); }
+  body #gallery { left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); }
+  #card .sheet { padding-left: calc(var(--sal) + 24px); padding-right: calc(var(--sar) + 24px); }
+}
+@media (prefers-reduced-motion: reduce) { #mBtn, #fitBtn { transition: none; } }
+</style>
 </head>
 <body>
 
@@ -575,7 +737,7 @@
 <div id="map"></div>
 
 <div id="toolbar">
-  <input id="q" type="search" placeholder="Search hotel, city, region or country" autocomplete="off">
+  <input id="q" type="search" placeholder="Search hotel, city, region or country" autocomplete="off" enterkeyhint="search" autocapitalize="none" autocorrect="off" spellcheck="false">
   <div class="chips" id="typeChips"></div>
   <div class="chips"><button type="button" class="chip on" id="vMap">Map</button><button type="button" class="chip" id="vList">List</button></div>
 </div>
@@ -592,7 +754,14 @@
 <div id="sidebar">
   <button type="button" id="addBtn">Add location +</button>
 </div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<button type="button" id="mBtn" aria-label="Search and filters" aria-expanded="false">
+  <svg class="s" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+  <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</button>
+<button type="button" id="fitBtn" aria-label="Show all locations">
+  <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+</button>
 
 <!-- Location details panel (top right) -->
 <div id="panel">
@@ -623,7 +792,7 @@
   <button type="button" id="addClose" title="Cancel">×</button>
   <h3>Add Location</h3>
   <label>Google Maps Link
-    <input id="gmLink" placeholder="Paste a Google Maps link" autocomplete="off" required>
+    <input id="gmLink" type="text" inputmode="url" placeholder="Paste a Google Maps link" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" required>
   </label>
   <label>Location Name
     <input id="gmName" placeholder="Resolved automatically; you can edit it" autocomplete="off">
@@ -655,8 +824,10 @@ const $ = id => document.getElementById(id);
 const STYLE = { radius: 8, color: '#FAF7F2', weight: 2, fillColor: '#2D2926', fillOpacity: 0.92 };
 const ACTIVE = { radius: 11, color: '#2D2926', weight: 2, fillColor: '#8C7556', fillOpacity: 1 };
 const DRAFT = { radius: 9, color: '#2D2926', weight: 2, dashArray: '4', fillColor: '#8C7556', fillOpacity: 0.45 };
+// Fingers are bigger than cursors: larger pins on touch screens (Apple recommends ~44pt hit targets)
+if (matchMedia('(pointer: coarse)').matches) { STYLE.radius = 12; STYLE.weight = 3; ACTIVE.radius = 15; ACTIVE.weight = 3; DRAFT.radius = 13; }
 
-const map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 5);
+const map = L.map('map', { zoomControl: false, minZoom: 2, zoomSnap: 0.5, zoomDelta: 1, wheelPxPerZoomLevel: 90, bounceAtZoomLimits: false }).setView([48.8566, 2.3522], 5);
 
 // Base map tiles (OpenStreetMap; the CARTO 'rastertiles' endpoint now requires an API key)
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -765,7 +936,7 @@ async function loadMedia(locationId) {
         div.append(img);
       } else if (href && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(href)) {
         const v = document.createElement('video');
-        v.src = href; v.controls = true; v.preload = 'metadata';
+        v.src = vsrc(href); v.controls = true; v.preload = 'metadata'; v.playsInline = true; v.setAttribute('playsinline', '');
         div.append(v);
       } else {
         const cap = document.createElement('div');
@@ -1326,9 +1497,12 @@ function routeFromHash() {
   let id;
   try { id = decodeURIComponent(m[1]); } catch (e) { return; }
   if (!places.has(id)) { if (cardId) closeCard(false); return; }
-  if (m[2]) openAllMedia(id, false);
+  const isMediaRoute = Boolean(m[2]);
+  if (cardId === id && mediaOnly === isMediaRoute && $('card').classList.contains('open')) return;
+  if (isMediaRoute) openAllMedia(id, false);
   else openCard(id, false);
 }
+window.addEventListener('popstate', routeFromHash);
 window.addEventListener('hashchange', routeFromHash);
 
 let editVals = {};
@@ -1405,7 +1579,7 @@ function drawPhotos() {
   const tabs = h('div', { className: 'chips tabs' }, ...['All', ...cats].map(c => h('button', { type: 'button', className: 'chip' + (c === gTab ? ' on' : ''), textContent: c, onclick: () => { gTab = c; drawCard(); } })));
   const list = cardMedia.filter(m => gTab === 'All' || m[F.category] === gTab), urls = list.filter(m => isImg(m.url)).map(m => safeUrl(m.url));
   const tiles = list.map(m => {
-    const u = safeUrl(m.url), media = isImg(u) ? h('img', { src: u, loading: 'lazy', alt: m.caption || '', onclick: () => { lbImages = urls; showLightbox(urls.indexOf(u)); } }) : h('video', { src: u, controls: true, preload: 'metadata' });
+    const u = safeUrl(m.url), media = isImg(u) ? h('img', { src: u, loading: 'lazy', alt: m.caption || '', onclick: () => { lbImages = urls; showLightbox(urls.indexOf(u)); } }) : h('video', { src: vsrc(u), controls: true, preload: 'metadata', playsInline: true });
     const idx = cardMedia.indexOf(m);
     const categoryPicker = dropdown({ value: m[F.category] || 'General', options: cats.map(c => ({ value: c, label: c })), onchange: category => setCategory(m, category) });
     categoryPicker.querySelector('button').setAttribute('aria-label', 'Media category');
@@ -1466,7 +1640,155 @@ function openBooking() {
 }
 $('bCancel').onclick = () => $('booking').classList.remove('open');
 
-init().then(routeFromHash);
+
+/* =====================================================================
+   iPhone upgrade — touch interaction layer
+   ===================================================================== */
+function vsrc(u) { return u && !u.includes('#') ? u + '#t=0.1' : u; }   // iOS shows the first frame instead of a blank tile
+const isPhone = () => matchMedia('(max-width: 700px)').matches;
+const rootStyle = document.documentElement.style;
+const vv = window.visualViewport;
+
+/* 1. keep --top-stack (bottom of the header) and --kb (keyboard height) in sync */
+(function () {
+  const hdr = $('header');
+  const syncTop = () => rootStyle.setProperty('--top-stack', Math.ceil(hdr.getBoundingClientRect().bottom) + 'px');
+  if (window.ResizeObserver) new ResizeObserver(syncTop).observe(hdr);
+  addEventListener('resize', syncTop); syncTop();
+  const syncKb = () => {
+    if (!vv) return;
+    const zoomed = vv.scale > 1.02;
+    const kb = zoomed ? 0 : Math.max(0, innerHeight - vv.height - vv.offsetTop);
+    rootStyle.setProperty('--kb', Math.round(kb) + 'px');
+    rootStyle.setProperty('--vvh', Math.round(vv.height) + 'px');
+  };
+  if (vv) { vv.addEventListener('resize', syncKb); vv.addEventListener('scroll', syncKb); syncKb(); }
+})();
+
+/* 2. the map follows every size change (Safari toolbars, rotation, back/forward cache) */
+let userMoved = false;
+map.getContainer().addEventListener('pointerdown', () => { userMoved = true; }, { once: true });
+function fitAll(animate = true) {
+  const cs = [...places.values()].filter(p => map.hasLayer(p.circle)).map(p => p.circle);
+  if (!cs.length) return;
+  const top = isPhone() ? Math.round($('header').getBoundingClientRect().bottom) + 14 : 40;
+  const bottom = isPhone() ? 96 : 40;
+  const b = L.featureGroup(cs).getBounds();
+  map.fitBounds(b, { paddingTopLeft: [32, top], paddingBottomRight: [32, bottom], maxZoom: 14, animate });
+}
+(function () {
+  let t;
+  const refresh = () => { map.invalidateSize({ pan: false }); if (!userMoved && !cardId) fitAll(false); };
+  const soon = () => { clearTimeout(t); t = setTimeout(refresh, 120); };
+  if (window.ResizeObserver) new ResizeObserver(soon).observe($('map'));
+  addEventListener('orientationchange', soon);
+  addEventListener('pageshow', e => { if (e.persisted) soon(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) soon(); });
+})();
+$('fitBtn').onclick = () => fitAll();
+
+/* 3. phone top-right button opens search & filters (the logo still works too) */
+$('mBtn').onclick = () => toggleMenu();
+new MutationObserver(() => $('mBtn').setAttribute('aria-expanded', document.body.classList.contains('menu-open')))
+  .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.target.blur(); if (!document.body.classList.contains('view-list')) fitAll(); } });
+$('typeChips').addEventListener('click', () => setTimeout(() => { if (!document.body.classList.contains('view-list')) fitAll(); }, 0));
+$('listGrid').addEventListener('touchstart', () => { if (document.activeElement === $('q')) $('q').blur(); }, { passive: true });
+
+/* 4. keep the selected pin visible above the bottom sheets */
+function centerInView(latlng, animate = true) {
+  const mr = $('map').getBoundingClientRect();
+  let top = Math.round($('header').getBoundingClientRect().bottom - mr.top) + 8, bottom = mr.height - 16;
+  ['panel', 'gallery'].forEach(id => {
+    const el = $(id);
+    if (getComputedStyle(el).display !== 'none') bottom = Math.min(bottom, el.getBoundingClientRect().top - mr.top - 12);
+  });
+  if (bottom - top < 80) return;
+  const p = map.latLngToContainerPoint(latlng), size = map.getSize();
+  const dx = p.x - size.x / 2, dy = p.y - (top + (bottom - top) / 2);
+  if (Math.abs(dx) > 1 || Math.abs(dy) > 1) map.panBy([dx, dy], { animate, duration: 0.45 });
+}
+{
+  const _showPanel = showPanel;
+  showPanel = function (loc, circle) {
+    const r = _showPanel(loc, circle);
+    if (isPhone()) requestAnimationFrame(() => centerInView(circle.getLatLng()));
+    return r;
+  };
+}
+
+/* 5. swipe a sheet down to dismiss it */
+function swipeDown(handle, moveEl, onClose) {
+  let sx = 0, sy = 0, dy = 0, on = false, decided = false;
+  handle.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || handle.scrollTop > 0 || !isPhone()) { on = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; dy = 0; on = true; decided = false;
+  }, { passive: true });
+  handle.addEventListener('touchmove', e => {
+    if (!on) return;
+    const dx = e.touches[0].clientX - sx; dy = e.touches[0].clientY - sy;
+    if (!decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { decided = true; if (Math.abs(dx) > Math.abs(dy)) { on = false; return; } }
+    if (dy > 0) { moveEl.style.transition = 'none'; moveEl.style.transform = 'translateY(' + dy + 'px)'; } else { dy = 0; moveEl.style.transform = ''; }
+  }, { passive: true });
+  const end = () => {
+    if (!on) return; on = false;
+    moveEl.style.transition = 'transform .2s ease'; moveEl.style.transform = '';
+    if (dy > 70) onClose();
+  };
+  handle.addEventListener('touchend', end, { passive: true });
+  handle.addEventListener('touchcancel', end, { passive: true });
+}
+swipeDown($('panel'), $('panel'), closePanel);
+swipeDown($('gallery').querySelector('.head'), $('gallery'), () => $('galleryClose').click());
+
+/* 6. long-press the map to drop a pin (iOS has no right-click) */
+(function () {
+  const c = map.getContainer(); let t, sx, sy;
+  c.addEventListener('touchstart', e => {
+    clearTimeout(t);
+    if (e.touches.length !== 1 || e.target.closest('.leaflet-interactive')) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    t = setTimeout(() => {
+      const r = c.getBoundingClientRect();
+      if (navigator.vibrate) navigator.vibrate(12);
+      openAdd(map.containerPointToLatLng([sx - r.left, sy - r.top]));
+      toast('Pin dropped — paste or confirm the details');
+    }, 650);
+  }, { passive: true });
+  c.addEventListener('touchmove', e => { if (Math.hypot(e.touches[0].clientX - sx, e.touches[0].clientY - sy) > 10) clearTimeout(t); }, { passive: true });
+  ['touchend', 'touchcancel'].forEach(n => c.addEventListener(n, () => clearTimeout(t), { passive: true }));
+})();
+
+/* 7. photo viewer: swipe left/right to browse, swipe down to close, pinch to zoom */
+(function () {
+  const lb = $('lightbox'), img = $('lightboxImg'); let sx, sy, dx = 0, dy = 0, on = false;
+  lb.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || (vv && vv.scale > 1.05)) { on = false; return; }
+    on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = dy = 0; img.style.transition = 'none';
+  }, { passive: true });
+  lb.addEventListener('touchmove', e => {
+    if (!on) return;
+    if (e.touches.length > 1) { on = false; img.style.transform = ''; return; }
+    dx = e.touches[0].clientX - sx; dy = e.touches[0].clientY - sy;
+    if (Math.abs(dy) > Math.abs(dx)) { img.style.transform = 'translateY(' + dy + 'px)'; lb.style.background = 'rgba(239,233,223,' + Math.max(.35, .97 - Math.abs(dy) / 520) + ')'; }
+    else img.style.transform = 'translateX(' + dx + 'px)';
+  }, { passive: true });
+  const end = () => {
+    if (!on) return; on = false;
+    img.style.transition = 'transform .2s ease'; lb.style.background = '';
+    if (Math.abs(dy) > 110 && Math.abs(dy) > Math.abs(dx)) lb.style.display = 'none';
+    else if (Math.abs(dx) > 60 && lbImages.length > 1) showLightbox(lbIndex + (dx < 0 ? 1 : -1));
+    img.style.transform = '';
+  };
+  lb.addEventListener('touchend', end, { passive: true });
+  lb.addEventListener('touchcancel', end, { passive: true });
+})();
+
+/* Keep the phone photo picker image-only so iOS supports selecting multiple photos. */
+if (isPhone()) $('galleryAddPhotos').textContent = '+ Add Photos';
+
+init().then(routeFromHash).then(() => { map.invalidateSize({ pan: false }); if (!cardId) fitAll(false); });
+
 </script>
 </body>
 </html>
