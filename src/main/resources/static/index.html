@@ -179,17 +179,16 @@
   #gallery .head .section-title { margin: 0; border: 0; padding: 0; }
   #gallery .gallery-title { margin:0; }
   #galleryLoc { flex: 1; min-width: 0; }
-  #galleryAddPhotos, #galleryAddVideos { padding: 6px 10px; font-size: 9px; letter-spacing: 1px; white-space: nowrap; }
-  .media-upload-status { font-size: 10px; color: var(--accent); }
+  #galleryAddMedia { padding: 6px 10px; font-size: 11px; letter-spacing: 1px; white-space: nowrap; }
+  .media-upload-status { font-size: 12px; color: var(--accent); overflow-wrap: anywhere; }
   #galleryUploadStatus:empty { display: none; }
   #galleryLoc {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
     font-weight: 500;
     color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   #galleryClose { top: 10px; right: 14px; }
   #media {
@@ -265,7 +264,7 @@
     position: absolute; top: 6px; left: 6px; max-width: calc(100% - 12px);
     padding: 3px 8px; border-radius: 999px; background: rgba(250, 247, 242, 0.92);
     color: var(--ink); font-size: 10px; font-weight: 600; letter-spacing: 1px;
-    text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-transform: uppercase; white-space: normal; overflow-wrap: anywhere;
     pointer-events: none;
   }
   #mediaUploadStatus { display: block; margin-top: 8px; font-size: 11px; color: var(--accent); }
@@ -386,9 +385,8 @@
     font-size: 17px;
     font-weight: 500;
     color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
@@ -453,8 +451,8 @@
   .chip.on { background:var(--ink); color:var(--surface); border-color:var(--ink); }
   /* popup dropdowns: same pill design as the chips, options pop up as chips */
   .dd { position:relative; display:inline-block; max-width:100%; }
-  .dd-btn { display:inline-flex; align-items:center; gap:9px; max-width:100%; white-space:nowrap; }
-  .dd-btn .dd-txt { overflow:hidden; text-overflow:ellipsis; }
+  .dd-btn { display:inline-flex; align-items:center; gap:9px; max-width:100%; white-space:normal; }
+  .dd-btn .dd-txt { overflow-wrap:anywhere; }
   .dd-btn::after { content:''; flex:none; width:5px; height:5px; margin-top:-3px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg); transition:transform .15s; }
   .dd-btn[aria-expanded="true"]::after { margin-top:3px; transform:rotate(-135deg); }
   .dd-btn:focus-visible, .dd-pop .chip:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
@@ -619,11 +617,15 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
 @media (pointer: coarse) {
   #card input:not(.card-name), #card textarea, #card select, #booking input, #booking textarea,
   #add input, #toolbar input, .fbar select { font-size: 16px; }
-  .chip { min-height: 40px; display: inline-flex; align-items: center; }
-  .btn { min-height: 44px; }
+  .chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn { min-height: 48px; }
+  .loc-btn, .country > summary, .fbar select, .upload-btn-label { min-height: 44px; }
+  .loc-btn { padding-top: 10px; padding-bottom: 10px; }
+  .country > summary { padding-top: 10px; padding-bottom: 10px; }
+  .upload-btn-label { display: inline-flex; align-items: center; justify-content: center; }
   #card .row a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
-  #card .ph .ctl button { min-height: 38px; padding: 6px 12px; font-size: 13px; }
-  #card .ph .download { min-height: 38px; }
+  #card .ph .ctl button { min-height: 44px; padding: 7px 12px; font-size: 14px; }
+  #card .ph .download { min-height: 44px; }
   .dd-pop { gap: 8px; }
 }
 
@@ -667,9 +669,7 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   body #gallery { left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap)); bottom: calc(var(--sab) + 24px); padding: 8px 14px 12px; border-radius: 18px; }
   body #gallery .head { padding-right: 44px; gap: 8px; min-height: 44px; align-items: center; }
   #galleryClose { top: 2px; }
-  #galleryAddVideos { display: none; }
-  #galleryAddPhotos { min-height: 36px; padding: 0 14px; font-size: 10px; }
-  #galleryOpenAll { min-height: 36px; }
+  #galleryAddMedia, #galleryOpenAll { min-height: 44px; padding-left: 14px; padding-right: 14px; font-size: 11px; }
   #galleryLoc { font-size: 16px; }
   #media { scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: none; }
   #media::-webkit-scrollbar { display: none; }
@@ -682,7 +682,7 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
     max-height: calc(var(--vvh, 100dvh) - var(--sat) - 28px);
     padding: 20px 18px 18px; border-radius: 18px; overscroll-behavior: contain;
   }
-  #add input { padding: 12px 14px; min-height: 46px; }
+  #add input { padding: 12px 14px; min-height: 48px; }
   #add button[type=submit] { min-height: 50px; }
 
   /* list view: solid top bar so cards never scroll under the logo */
@@ -778,10 +778,8 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   <div class="head">
     <button type="button" class="chip gallery-title" id="galleryOpenAll" title="Open all media">All Media</button>
     <span id="galleryLoc"></span>
-    <button type="button" class="btn" id="galleryAddPhotos">Add Photos</button>
-    <button type="button" class="btn ghost" id="galleryAddVideos">Add Videos</button>
-    <input id="galleryPhotoFiles" type="file" accept="image/*" multiple hidden>
-    <input id="galleryVideoFiles" type="file" accept="video/*" multiple hidden>
+    <button type="button" class="btn" id="galleryAddMedia">Add Media</button>
+    <input id="galleryMediaFiles" type="file" accept="image/*,video/*" multiple hidden>
     <span id="galleryUploadStatus" class="media-upload-status" aria-live="polite"></span>
   </div>
   <div id="media"></div>
@@ -912,7 +910,7 @@ async function loadMedia(locationId) {
   const seq = ++galleryLoadSeq;
   const isCurrent = () => seq === galleryLoadSeq && String(currentLocId) === String(locationId);
   const box = $('media');
-  box.textContent = 'Loading gallery…';
+  box.textContent = 'Loading gallery';
   try {
     const items = (await getJson(`/api/locations/${encodeURIComponent(locationId)}/media`) || []).map(expandMedia);
     if (!isCurrent()) return;
@@ -991,12 +989,11 @@ function closePanel() {
 }
 $('close').onclick = closePanel;
 $('galleryClose').onclick = () => { $('gallery').classList.remove('open'); document.body.classList.remove('gallery-open'); };
-$('galleryAddPhotos').onclick = () => $('galleryPhotoFiles').click();
-$('galleryAddVideos').onclick = () => $('galleryVideoFiles').click();
-['galleryPhotoFiles', 'galleryVideoFiles'].forEach(id => $(id).onchange = e => {
+$('galleryAddMedia').onclick = () => $('galleryMediaFiles').click();
+$('galleryMediaFiles').onchange = e => {
   const input = e.target;
   addFiles([...input.files]).finally(() => { input.value = ''; });
-});
+};
 $('lightboxClose').onclick = () => $('lightbox').style.display = 'none';
 /* keep clicks/scrolls on the floating boxes from reaching the map */
 ['header', 'panel', 'gallery', 'add', 'sidebar'].forEach(id => { L.DomEvent.disableClickPropagation($(id)); L.DomEvent.disableScrollPropagation($(id)); });
@@ -1103,7 +1100,7 @@ async function uploadOne(file, locId, category, onProgress) {
 
 async function handleFiles(fileList, category = 'General') {
   if (!currentLocId || !fileList || !fileList.length) return false;
-  if (uploading) { mediaUploadStatus = 'An upload is already running…'; drawCard(); return false; }
+  if (uploading) { mediaUploadStatus = 'An upload is already running.'; drawCard(); return false; }
   let files = Array.from(fileList), note = '';
   if (files.length > MAX_FILES) { note = ' (only the first ' + MAX_FILES + ' files were used)'; files = files.slice(0, MAX_FILES); }
 
@@ -1111,7 +1108,7 @@ async function handleFiles(fileList, category = 'General') {
   const locId = currentLocId, progress = files.map(() => 0), failed = [];
   let done = 0;
   const render = () => {
-    mediaUploadStatus = 'Uploading ' + done + '/' + files.length + ' … ' +
+    mediaUploadStatus = 'Uploading ' + done + ' of ' + files.length + ' files, ' +
       Math.round(progress.reduce((x, y) => x + y, 0) / files.length) + '%';
     document.querySelectorAll('.media-upload-status').forEach(status => { status.textContent = mediaUploadStatus; });
   };
@@ -1130,7 +1127,7 @@ async function handleFiles(fileList, category = 'General') {
   } finally { uploading = false; }
   const ok = files.length - failed.length;
   mediaUploadStatus = 'Uploaded ' + ok + ' of ' + files.length + ' file' + (files.length === 1 ? '' : 's') + note +
-    (failed.length ? ' — failed: ' + failed.slice(0, 3).join('; ') + (failed.length > 3 ? '…' : '') : '');
+    (failed.length ? '. Failed: ' + failed.join('; ') : '');
   if (locId === cardId) await loadCardMedia();
   else if (locId === currentLocId) await loadMedia(locId);
   document.querySelectorAll('.media-upload-status').forEach(status => { status.textContent = mediaUploadStatus; });
@@ -1395,8 +1392,8 @@ const FIELDS = [
   ['duration', 'Duration', 'text', ['Experiences']], ['logistics', 'Booking & logistics', 'area', ['Experiences']],
   ['pros', 'Key advantages', 'area'], ['cons', 'Features & drawbacks', 'area'],
   ['suitableFor', 'Suitable for (comma separated)', 'text', null, {
-    Hotels: 'Suitable for (couples, families, wellness, ski, beach…)', Restaurants: 'Suitable for (couples, groups, business, celebrations…)',
-    Experiences: 'Suitable for (families, adventure, culture, wellness…)' }],
+    Hotels: 'Suitable for couples, families, wellness, ski, or beach', Restaurants: 'Suitable for couples, groups, business, or celebrations',
+    Experiences: 'Suitable for families, adventure, culture, or wellness' }],
   ['bestSeason', 'Best season', 'text'], ['lastVisit', 'Last team visit', 'date'], ['visitedBy', 'Visited by', 'text']
 ];
 const fieldsFor = t => FIELDS.filter(f => !f[3] || f[3].includes(t));
@@ -1595,10 +1592,8 @@ function drawPhotos() {
   });
   const up = mediaOnly && h('div', { className: 'upload-box' },
     h('p', { textContent: 'Add up to 10 photos or videos. New media starts in General; change its category on the picture.' }),
-    h('button', { className: 'btn', type: 'button', textContent: 'Add Photos', onclick: () => $('mediaPagePhotos').click() }),
-    h('button', { className: 'btn ghost', type: 'button', textContent: 'Add Videos', onclick: () => $('mediaPageVideos').click() }),
-    h('input', { id: 'mediaPagePhotos', type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
-    h('input', { id: 'mediaPageVideos', type: 'file', accept: 'video/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
+    h('button', { className: 'btn', type: 'button', textContent: 'Add Media', onclick: () => $('mediaPageFiles').click() }),
+    h('input', { id: 'mediaPageFiles', type: 'file', accept: 'image/*,video/*', multiple: true, hidden: true, onchange: e => { const input = e.target; addFiles([...input.files]).finally(() => { input.value = ''; }); } }),
     h('span', { id: 'mediaUploadStatus', className: 'media-upload-status', textContent: mediaUploadStatus }));
   return h('div', {}, h('h4', { textContent: 'Photos & video', style: 'margin:30px 0 8px;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)' }), tabs, up,
     tiles.length ? h('div', { className: 'photos' }, ...tiles) : h('p', { textContent: 'No photos in this gallery yet.', style: 'color:var(--muted)' }));
@@ -1783,9 +1778,6 @@ swipeDown($('gallery').querySelector('.head'), $('gallery'), () => $('galleryClo
   lb.addEventListener('touchend', end, { passive: true });
   lb.addEventListener('touchcancel', end, { passive: true });
 })();
-
-/* Keep the phone photo picker image-only so iOS supports selecting multiple photos. */
-if (isPhone()) $('galleryAddPhotos').textContent = '+ Add Photos';
 
 init().then(routeFromHash).then(() => { map.invalidateSize({ pan: false }); if (!cardId) fitAll(false); });
 
