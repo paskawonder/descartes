@@ -818,11 +818,15 @@ const DRAFT = { radius: 9, color: '#2D2926', weight: 2, dashArray: '4', fillColo
 // Fingers are bigger than cursors: larger pins on touch screens (Apple recommends ~44pt hit targets)
 if (matchMedia('(pointer: coarse)').matches) { STYLE.radius = 12; STYLE.weight = 3; ACTIVE.radius = 15; ACTIVE.weight = 3; DRAFT.radius = 13; }
 
-const map = L.map('map', { zoomControl: false, minZoom: 2, zoomSnap: 0.5, zoomDelta: 1, wheelPxPerZoomLevel: 90, bounceAtZoomLimits: false }).setView([48.8566, 2.3522], 5);
+const map = L.map('map', {
+  zoomControl: false, minZoom: 2, zoomSnap: 0.5, zoomDelta: 1,
+  wheelPxPerZoomLevel: 90, bounceAtZoomLimits: false, worldCopyJump: true
+}).setView([48.8566, 2.3522], 5);
 
 // Base map tiles (OpenStreetMap; the CARTO 'rastertiles' endpoint now requires an API key)
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
+  noWrap: false,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
@@ -1291,7 +1295,7 @@ $('add').onsubmit = async ev => {
   }
 };
 
-/* Logo = master switch. 1st click: action buttons + per-country list. 2nd click: back to the raw map. */
+/* Header = master switch. 1st click opens the menu; 2nd click returns to the map. */
 let toastTimer;
 function toast(msg) {
   $('toast').textContent = msg;
@@ -1306,8 +1310,17 @@ function setMenu(on) {
   if (!on) { closeAdd(); closePanel(); closeCard(); setView('map'); }
 }
 const toggleMenu = () => setMenu(!document.body.classList.contains('menu-open'));
-$('header').addEventListener('click', toggleMenu);
-$('header').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); } });
+function toggleMenuAndResetMap() {
+  toggleMenu();
+  fitAll();
+}
+$('header').addEventListener('click', toggleMenuAndResetMap);
+$('header').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    toggleMenuAndResetMap();
+  }
+});
 
 /* ===== Finest Collection: card, list, search, photo management ===== */
 const LS = (() => { try { return JSON.parse(localStorage.dfc || '{}'); } catch (e) { return {}; } })();
