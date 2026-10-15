@@ -644,10 +644,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-// Local dev talks to the updated API on localhost:8080; any other host keeps using Beanstalk
-const API = ['localhost', '127.0.0.1', ''].includes(location.hostname)
-  ? 'http://localhost:8080'
-  : 'http://descartes-collection-env.eba-br2mdkms.eu-north-1.elasticbeanstalk.com';
+const API = 'http://descartes-collection-env.eba-br2mdkms.eu-north-1.elasticbeanstalk.com';
 // Location field names in the API schema (/v3/api-docs) — change here if they differ
 const F = { country: 'country', link: 'mapsLink', category: 'category' }; // country + link live on Location, category on LocationMedia
 const $ = id => document.getElementById(id);
