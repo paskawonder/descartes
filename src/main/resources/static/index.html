@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#EFE9DF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Descartes">
@@ -145,6 +144,7 @@
     border-bottom: 1px solid transparent;
   }
   #panel .coords:hover { border-bottom-color: var(--accent); }
+  #panelActions { display: none; }
   #close, #addClose, #galleryClose {
     position: absolute;
     top: 16px;
@@ -502,8 +502,8 @@
   #card .blk h4 { margin:0 0 6px; font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
   #card .blk p { margin:0; white-space:pre-wrap; line-height:1.6; }
   #card .tags span { display:inline-block; margin:0 6px 6px 0; padding:4px 11px; border:1px solid var(--line); border-radius:999px; font-size:12px; }
-  #card input, #card textarea, #card select, #booking input, #booking textarea { width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:#FFF; font:inherit; font-size:13px; color:var(--ink); }
-  #card textarea, #booking textarea { min-height:70px; resize:vertical; }
+  #card input, #card textarea, #card select { width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:#FFF; font:inherit; font-size:13px; color:var(--ink); }
+  #card textarea { min-height:70px; resize:vertical; }
   .btn { padding:11px 20px; border:0; border-radius:999px; background:var(--ink); color:var(--surface); font:inherit; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; cursor:pointer; }
   .btn.ghost { background:none; color:var(--ink); border:1px solid var(--ink); }
   #card .tabs { margin:8px 0 14px; }
@@ -515,9 +515,6 @@
   #card .ph .ctl { display:flex; flex-wrap:wrap; gap:4px; padding:6px; border-top:1px solid var(--line); }
   #card .ph .ctl button { padding:3px 8px; border:1px solid var(--line); border-radius:6px; background:#FFF; font-size:12px; cursor:pointer; }
   #card .ph .download { display:inline-flex; margin:6px; padding:6px 10px; font-size:10px; text-decoration:none; }
-  #booking { display:none; position:fixed; inset:0; z-index:1700; align-items:center; justify-content:center; background:rgba(30,25,20,.45); }
-  #booking.open { display:flex; }
-  #booking .bbox { width:min(420px,92vw); padding:24px; border-radius:var(--radius); background:var(--surface); display:grid; gap:10px; }
   @media (max-width:1100px) { #toolbar { top:calc(var(--gap) + 125px); left:var(--gap); right:var(--gap); } #listView { padding:200px 16px 40px; } }
   @media (max-width:700px) { #card h2, #card .card-name { font-size:30px; margin-right:48px; } #card .sheet { padding-top:36px; } #cardClose { top:22px; right:16px; } #toolbar { top:110px; } }
   @media (max-width:700px) { #card .photos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } }
@@ -598,10 +595,14 @@ html, body { overflow: hidden; }
 /* Fixed, full-bleed layout: the map always fills the screen even while Safari's bars collapse/expand */
 body { position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: auto; height: auto; -webkit-tap-highlight-color: transparent; }
 #map { position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: auto; height: auto; margin: 0; padding: 0; border: 0; border-radius: 0; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* Edge-to-edge: 100lvh is the viewport with Safari's toolbars collapsed, so the map also fills the strips behind the
+   (translucent) status bar and bottom toolbar instead of leaving paper-coloured margins. Older browsers keep the inset:0 sizing above. */
+:root { --lv-gap: 0px; }   /* map area hidden under the browser's bottom toolbar */
+@supports (height: 100lvh) { :root { --lv-gap: max(0px, calc(100lvh - 100dvh)); } #map { bottom: auto; height: 100lvh; min-height: 100%; } }
 /* Full-bleed map: edges (top/right/bottom/left = 0) define its size, with no explicit height.
    A 100dvh height stopped short of the screen edges and left paper-coloured strips at the top and bottom.
    The map now runs under the status bar and home indicator; only the controls respect the safe areas. */
-.leaflet-bottom { margin-bottom: var(--sab); }
+.leaflet-bottom { margin-bottom: calc(var(--sab) + var(--lv-gap)); }
 .leaflet-left { margin-left: var(--sal); }
 .leaflet-right { margin-right: var(--sar); }
 /* Landscape home-screen devices can be wider than the phone breakpoint. */
@@ -616,7 +617,6 @@ body { position: fixed; top: 0; right: 0; bottom: 0; left: 0; width: auto; heigh
   #cardClose { top: calc(var(--sat) + 12px); right: calc(var(--sar) + 20px); }
   #lightboxClose { top: calc(var(--sat) + 20px); right: calc(var(--sar) + 20px); }
   #lbCount { bottom: calc(var(--sab) + 16px); }
-  #booking .bbox { padding-bottom: calc(var(--sab) + 24px); }
 }
 button, .chip, .btn, summary, a, label { touch-action: manipulation; }
 #header, .chip, .btn, button, .lcard { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -648,7 +648,7 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
 
 /* Touch devices: 16px inputs stop iOS from zooming the page when a field is focused */
 @media (pointer: coarse) {
-  #card input:not(.card-name), #card textarea, #card select, #booking input, #booking textarea,
+  #card input:not(.card-name), #card textarea, #card select,
   #add input, #toolbar input, .fbar select { font-size: 16px; }
   .chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .btn { min-height: 48px; }
@@ -698,6 +698,8 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   body #panel h3 { font-size: 25px; margin-right: 44px; }
   body #panel .coords { display: inline-flex; align-items: center; min-height: 44px; margin: 0; font-size: 13px; }
   body #panel #openCardLink { margin-left: 8px; padding: 0 20px; border-radius: 999px; background: var(--ink); color: var(--surface); border-bottom: 0; }
+  body #panelActions { display: flex; gap: 8px; margin-top: 10px; padding-bottom: 8px; }
+  #panelActions .btn { flex: 1 1 0; min-height: 44px; padding: 0 12px; font-size: 11px; letter-spacing: 1px; white-space: nowrap; text-transform: uppercase; }
   #close, #addClose, #galleryClose { width: 44px; height: 44px; top: 8px; right: 6px; font-size: 28px; display: flex; align-items: center; justify-content: center; }
   body #gallery { left: calc(var(--sal) + var(--gap)); right: calc(var(--sar) + var(--gap)); bottom: calc(var(--sab) + 24px); padding: 8px 14px 12px; border-radius: 18px; }
   body #gallery .head { padding-right: 44px; gap: 8px; min-height: 44px; align-items: center; }
@@ -737,7 +739,6 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   #card .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -18px; padding-right: 18px; }
   #card .tabs::-webkit-scrollbar { display: none; }
   #card .tabs .chip { flex: none; }
-  #booking .bbox { padding-bottom: calc(24px + var(--sab)); }
 
   /* lightbox */
   #lightbox { padding: 0; touch-action: pinch-zoom; }
@@ -745,7 +746,7 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   #lightboxClose { top: calc(var(--sat) + 10px); right: calc(var(--sar) + 10px); width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
   .lb-nav { width: 44px; height: 44px; } #lbPrev { left: calc(var(--sal) + 10px); } #lbNext { right: calc(var(--sar) + 10px); }
   #lbCount { bottom: calc(var(--sab) + 16px); }
-  .leaflet-bottom { margin-bottom: var(--sab); }
+  .leaflet-bottom { margin-bottom: calc(var(--sab) + var(--lv-gap)); }
 }
 
 /* Landscape phones: short viewport */
@@ -777,13 +778,6 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
 </div>
 <div id="listView"><div class="fbar" id="fbar"></div><div class="grid" id="listGrid"></div></div>
 <div id="card"><button type="button" id="cardClose" title="Close" aria-label="Close full card">×</button><div class="sheet" id="sheet"></div></div>
-<div id="booking"><div class="bbox">
-  <h3 style="margin:0">Request a Booking</h3>
-  <p id="bText" style="margin:0"></p>
-  <a id="waLink" class="btn" style="text-align:center;text-decoration:none" target="_blank" rel="noopener noreferrer"></a>
-  <button class="btn ghost" type="button" id="bCancel">Close</button>
-</div></div>
-
 <!-- Left sidebar: per-country locations + action buttons (shown after clicking the logo) -->
 <div id="sidebar">
   <button type="button" id="addBtn">Add location +</button>
@@ -795,7 +789,10 @@ body.gallery-open #fitBtn, body.add-open #fitBtn, body.view-list #fitBtn { displ
   <h3 id="title"></h3>
   <div id="meta" class="meta"></div>
   <a id="mapsLink" class="coords" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a> <a id="openCardLink" class="coords" href="#" style="margin-left:14px">Full Card →</a>
-
+  <div id="panelActions">
+    <button type="button" class="btn" id="panelAddMedia">Add Media</button>
+    <button type="button" class="btn ghost" id="panelViewGallery">View Gallery</button>
+  </div>
 </div>
 
 <!-- Media gallery — detached strip along the bottom of the screen -->
@@ -1062,6 +1059,8 @@ function closePanel() {
 $('close').onclick = closePanel;
 $('galleryClose').onclick = () => { $('gallery').classList.remove('open'); document.body.classList.remove('gallery-open'); stopGallery(); };
 $('galleryAddMedia').onclick = () => $('galleryMediaFiles').click();
+$('panelAddMedia').onclick = () => $('galleryMediaFiles').click();
+$('panelViewGallery').onclick = () => { if (panelLocId != null) openAllMedia(panelLocId); };
 $('galleryMediaFiles').onchange = e => {
   const input = e.target;
   addFiles([...input.files]).finally(() => { input.value = ''; });
@@ -1393,7 +1392,6 @@ const toggleMenu = () => setMenu(!document.body.classList.contains('menu-open'))
 function resetState() {
   ddClose();
   closeLightbox();
-  $('booking').classList.remove('open');
   closeAdd();
   closePanel();            // also stops the gallery strip
   closeCard(false);        // also stops the media page
@@ -1424,7 +1422,7 @@ $('header').addEventListener('keydown', e => {
 
 /* ===== Finest Collection: card, list, search, photo management ===== */
 const LS = (() => { try { return JSON.parse(localStorage.dfc || '{}'); } catch (e) { return {}; } })();
-LS.loc = LS.loc || {}; LS.media = LS.media || {}; LS.bookings = LS.bookings || [];
+LS.loc = LS.loc || {}; LS.media = LS.media || {};
 const save = () => { try { localStorage.dfc = JSON.stringify(LS); } catch (e) {} };
 const full = loc => { const f = { ...loc, ...LS.loc[loc.id] }; if (f.hotelCategory && !f.subcategory) f.subcategory = f.hotelCategory; return f; };
 const h = (tag, props, ...kids) => { const e = Object.assign(document.createElement(tag), props || {}); e.append(...kids.filter(k => k != null && k !== false)); return e; };
@@ -1616,7 +1614,7 @@ function closeCard(clearRoute = true) {
   if (dirty && panelLocId != null && String(panelLocId) === String(wasId) && $('gallery').classList.contains('open')) loadMedia(panelLocId);
 }
 $('cardClose').onclick = closeCard;
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { $('booking').classList.remove('open'); closeCard(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lbOpen()) { closeCard(); } });
 function routeFromHash() {
   const m = location.hash.match(/^#\/l\/([^/]+)(\/media)?$/);
   if (!m) { if (cardId) closeCard(false); return; }
@@ -1753,7 +1751,6 @@ async function remove(m) {
 }
 async function addFiles(files) { if (!files.length) return; await handleFiles(files); }
 
-$('bCancel').onclick = () => $('booking').classList.remove('open');
 
 
 /* =====================================================================
@@ -1787,7 +1784,8 @@ function fitAll(animate = true) {
   const cs = [...places.values()].filter(p => map.hasLayer(p.circle)).map(p => p.circle);
   if (!cs.length) return;
   const top = isPhone() ? Math.round($('header').getBoundingClientRect().bottom) + 14 : 40;
-  const bottom = isPhone() ? 96 : 40;
+  const hidden = Math.max(0, Math.round(map.getSize().y - innerHeight));   // map rows under the browser toolbar
+  const bottom = (isPhone() ? 96 : 40) + hidden;
   const b = L.featureGroup(cs).getBounds();
   map.fitBounds(b, { paddingTopLeft: [32, top], paddingBottomRight: [32, bottom], maxZoom: 14, animate });
 }
@@ -1923,7 +1921,7 @@ init().then(routeFromHash).then(() => { map.invalidateSize({ pan: false }); if (
   #tabbar button.on { color: var(--ink) !important; }
   #tabbar button { flex-direction: column; align-items: center; justify-content: center; display: flex; }
   #tabbar button.on::after { content: ""; display: block; width: 18px; height: 2px; margin: 6px auto 0; background: var(--ink); }
-  .leaflet-bottom { margin-bottom: calc(var(--sab) + 58px); }
+  .leaflet-bottom { margin-bottom: calc(var(--sab) + 58px + var(--lv-gap)); }
   /* list as a single-column feed */
   body.view-list #listView, #listView { padding: calc(var(--sat) + 160px) 0 calc(var(--sab) + 80px) !important; }
   #listView .fbar { padding: 0 12px; flex-wrap: nowrap; overflow-x: auto; }
