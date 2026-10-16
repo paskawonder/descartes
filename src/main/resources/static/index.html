@@ -1643,6 +1643,7 @@ function collectEdits() {
 function drawCard() {
   const p = places.get(cardId); if (!p) return;
   releaseMedia($('sheet'));
+  $('card').classList.toggle('media-only', !!mediaOnly);
   const edit = !mediaOnly, f = edit ? { ...full(p.loc), ...editVals } : full(p.loc);
   const t = f.type === 'Destinations' ? 'Experiences' : f.type || '', box = $('sheet');
   const sub = [t, f.city, f.region, p.loc.country].filter(Boolean).join(' · ') + (f.subcategory ? '  ·  ' + f.subcategory : '');
@@ -1943,6 +1944,40 @@ init().then(routeFromHash).then(() => { map.invalidateSize({ pan: false }); if (
   #card .sheet { padding: calc(var(--sat) + 56px) 16px calc(var(--sab) + 90px) !important; }
   #card .photos { display: flex !important; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px; }
   #card .ph { flex: 0 0 86%; scroll-snap-align: center; }
+}
+
+/* ===== iPhone (incl. 17 Pro Max, 440 x 956): Full Card scrolls only up/down, All Media fits the screen height ===== */
+@media (max-width: 700px) {
+  /* Full Card: nothing may be wider than the screen */
+  body #card { overflow-x: hidden; }
+  body #card .sheet { width: 100%; max-width: 100%; min-width: 0; }
+  body #card .card-name { width: calc(100% - 48px); min-width: 0; margin-right: 0; }   /* was 100% + 48px margin = 48px too wide */
+  body #card h2, body #card .sub, body #card .blk, body #card .blk p, body #card .tags, body #card .row a { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  body #card input, body #card textarea, body #card select { min-width: 0; max-width: 100%; }
+  body #card input[type="date"] { display: block; min-height: 44px; -webkit-appearance: none; appearance: none; }
+  body #card .dd { max-width: 100%; }
+  body #card .tabs { margin-right: -16px; padding-right: 16px; }   /* bleed to the screen edge, not 2px past it */
+
+  /* All Media: header, tabs and upload box take their natural height; the photo strip takes the rest and scrolls sideways only */
+  body #card.media-only { overflow-x: hidden; }
+  body #card.media-only .sheet { display: flex; flex-direction: column; height: 100%; padding: calc(var(--sat) + 52px) calc(var(--sar) + 16px) calc(var(--sab) + 14px) calc(var(--sal) + 16px) !important; }
+  body #card.media-only .sheet > h2 { flex: none; font-size: 28px; line-height: 1.05; }
+  body #card.media-only .sheet > .sub { flex: none; margin: 4px 0 8px; font-size: 11px; letter-spacing: 1.4px; }
+  body #card.media-only .sheet > .row { flex: none; margin-bottom: 2px; }
+  body #card.media-only .sheet > div:last-child { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  body #card.media-only .sheet > div:last-child > h4 { flex: none; margin: 8px 0 2px !important; }
+  body #card.media-only .sheet > div:last-child > .tabs { flex: none; margin-top: 4px; margin-bottom: 8px; }
+  body #card.media-only .sheet > div:last-child > .upload-box { flex: none; margin: 0 0 8px; padding: 8px 12px; }
+  body #card.media-only .upload-box p { margin: 0 0 6px; font-size: 11px; line-height: 1.35; }
+  body #card.media-only .upload-box .btn { min-height: 40px; }
+  body #card.media-only .sheet > div:last-child > p { flex: none; }
+  body #card.media-only .photos { flex: 1 1 0; min-height: 240px; display: flex !important; flex-wrap: nowrap; gap: 10px; overflow-x: auto; overflow-y: hidden; align-items: stretch; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px; }
+  body #card.media-only .ph { flex: 0 0 86%; height: 100%; display: flex; flex-direction: column; scroll-snap-align: center; }
+  body #card.media-only .ph > img, body #card.media-only .ph > video { flex: 1 1 0; min-height: 0; width: 100%; height: auto; aspect-ratio: auto; object-fit: cover; }
+  body #card.media-only .ph > .cap { flex: none; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body #card.media-only .ph > .download { flex: none; align-self: flex-start; align-items: center; margin: 2px 6px 4px; min-height: 36px; padding: 4px 12px; }
+  body #card.media-only .ph > .ctl { flex: none; gap: 4px; padding: 4px; }
+  body #card.media-only .ph .ctl button { min-height: 38px; padding: 4px 10px; font-size: 13px; }
 }
 </style>
 <script>
